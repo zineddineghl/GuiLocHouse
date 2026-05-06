@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply font-sans text-gray-200 bg-luxuryBlack antialiased; }
+  * { @apply box-border; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-gnYellow text-black font-bold tracking-wider uppercase text-sm rounded-lg hover:bg-white active:scale-95 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gnYellow focus:ring-offset-2 focus:ring-offset-luxuryBlack disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_32px_rgba(252,209,22,0.3)];
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 bg-transparent text-white font-bold tracking-wider uppercase text-sm rounded-lg border border-white/20 hover:border-gnYellow hover:text-gnYellow active:scale-95 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gnYellow focus:ring-offset-2 focus:ring-offset-luxuryBlack disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-6 py-2.5 bg-gnRed text-white font-semibold rounded-lg hover:opacity-80 active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gnRed focus:ring-offset-2 focus:ring-offset-luxuryBlack disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-sm { @apply px-4 py-1.5 text-xs; }
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gnYellow focus:bg-gnYellow/5 focus:border-transparent transition-all duration-200;
+  }
+  .card {
+    @apply bg-luxuryDark rounded-2xl shadow-lg border border-white/5 overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:border-gnYellow/30 hover:shadow-[0_24px_60px_rgba(0,0,0,0.4)];
+  }
+  .form-label { @apply block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-widest; }
+  .form-group { @apply flex flex-col gap-1.5; }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-luxuryBlack; }
+::-webkit-scrollbar-thumb { @apply bg-gnYellow rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-white; }
+
+.triline { display: flex; gap: 4px; margin: 12px 0 20px; }
+.triline span { height: 3px; border-radius: 2px; width: 48px; }
+.triline .t-red { @apply bg-gnRed; }
+.triline .t-yellow { @apply bg-gnYellow; }
+.triline .t-green { @apply bg-gnGreen; }
