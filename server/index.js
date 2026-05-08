@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/houses', require('./routes/houses'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/messages', require('./routes/messages'));
+app.use('/api/favorites', require('./routes/favorites'));
 
 // Serve client build in production
 if (process.env.NODE_ENV === 'production') {

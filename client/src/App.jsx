@@ -11,6 +11,10 @@ import HouseDetail from './pages/HouseDetail';
 import PostHouse from './pages/PostHouse';
 import Profile from './pages/Profile';
 import MyBookings from './pages/MyBookings';
+import MyHouses from './pages/MyHouses';
+import Favorites from './pages/Favorites';
+import Messages from './pages/Messages';
+import Conversation from './pages/Conversation';
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
@@ -73,6 +77,10 @@ export default function App() {
         <Route path="/post-house" element={<PostHouse />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/bookings" element={<MyBookings />} />
+        <Route path="/my-houses" element={<MyHouses />} />
+        <Route path="/favorites" element={<Favorites />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/messages/:id" element={<Conversation />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>

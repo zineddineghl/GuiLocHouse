@@ -76,4 +76,30 @@ router.put('/profile', authenticate, async (req, res) => {
   }
 });
 
+// PUT /api/auth/password
+router.put('/password', authenticate, async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) return res.status(400).json({ error: 'Champs requis manquants' });
+  try {
+    const { rows } = await pool.query('SELECT password FROM users WHERE id = $1', [req.user.id]);
+    const valid = await bcrypt.compare(current_password, rows[0].password);
+    if (!valid) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
+    const hash = await bcrypt.hash(new_password, 10);
+    await pool.query('UPDATE users SET password = $1 WHERE id = $2', [hash, req.user.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// DELETE /api/auth/me
+router.delete('/me', authenticate, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM users WHERE id = $1', [req.user.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 module.exports = router;
