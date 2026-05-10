@@ -16,7 +16,10 @@ router.post('/', authenticate, async (req, res) => {
 
     const nights = Math.ceil((new Date(end_date) - new Date(start_date)) / (1000 * 60 * 60 * 24));
     if (nights < 1) return res.status(400).json({ error: 'Dates invalides' });
-    const total_price = nights * house.price_per_night;
+    let discountPct = 0;
+    if (nights >= 28 && house.discount_monthly > 0) discountPct = house.discount_monthly;
+    else if (nights >= 7 && house.discount_weekly > 0) discountPct = house.discount_weekly;
+    const total_price = Math.round(nights * house.price_per_night * (1 - discountPct / 100));
 
     const { rows } = await pool.query(`
       INSERT INTO bookings (house_id, renter_id, start_date, end_date, total_price, guests, message)

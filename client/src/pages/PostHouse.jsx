@@ -146,6 +146,8 @@ export default function PostHouse() {
   const [price, setPrice] = useState('');
   const [minNights, setMinNights] = useState('');
   const [maxNights, setMaxNights] = useState('');
+  const [discountWeekly, setDiscountWeekly] = useState('');
+  const [discountMonthly, setDiscountMonthly] = useState('');
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const fileRef = useRef(null);
@@ -190,6 +192,8 @@ export default function PostHouse() {
       fd.append('amenities', JSON.stringify(selectedAmenities));
       if (minNights) fd.append('min_nights', minNights);
       if (maxNights) fd.append('max_nights', maxNights);
+      if (discountWeekly) fd.append('discount_weekly', discountWeekly);
+      if (discountMonthly) fd.append('discount_monthly', discountMonthly);
       fd.append('latitude', latitude);
       fd.append('longitude', longitude);
       images.forEach(img => fd.append('images', img));
@@ -440,6 +444,39 @@ export default function PostHouse() {
                       className={INPUT + ' pr-14'}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs">nuits</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-1">
+                  Remises long séjour <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
+                </label>
+                <p className="text-gray-700 text-xs mb-3">Offrez une réduction automatique pour les séjours longs.</p>
+                <div className="flex gap-3">
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={discountWeekly}
+                      onChange={e => setDiscountWeekly(e.target.value)}
+                      min={0} max={90}
+                      className={INPUT + ' pr-8'}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">%</span>
+                    <span className="block text-center text-[10px] text-gray-600 mt-1">7 nuits+</span>
+                  </div>
+                  <div className="flex-1 relative">
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={discountMonthly}
+                      onChange={e => setDiscountMonthly(e.target.value)}
+                      min={0} max={90}
+                      className={INPUT + ' pr-8'}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">%</span>
+                    <span className="block text-center text-[10px] text-gray-600 mt-1">28 nuits+</span>
                   </div>
                 </div>
               </div>

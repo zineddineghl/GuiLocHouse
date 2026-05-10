@@ -97,7 +97,9 @@ export default function HouseDetail() {
   const images = Array.isArray(house.images) ? house.images : JSON.parse(house.images || '[]');
   const isOwner = user?.id === house.owner_id;
   const nights = startDate && endDate ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000)) : 0;
-  const total = nights * house.price_per_night;
+  const discountPct = nights >= 28 ? (house.discount_monthly || 0) : nights >= 7 ? (house.discount_weekly || 0) : 0;
+  const pricePerNight = Math.round(house.price_per_night * (1 - discountPct / 100));
+  const total = nights * pricePerNight;
 
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -305,12 +307,25 @@ export default function HouseDetail() {
                     <textarea rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Presentez-vous..." className="input-field-sm resize-none" />
                   </div>
                   {nights > 0 && (
-                    <div className="bg-white/5 rounded-xl p-3 text-sm">
+                    <div className="bg-white/5 rounded-xl p-3 text-sm space-y-1.5">
+                      {discountPct > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-gnYellow uppercase tracking-widest">
+                            Remise {nights >= 28 ? 'mensuelle' : 'semaine'} -{discountPct}%
+                          </span>
+                          <span className="text-gnYellow text-xs font-bold">-{Math.round(nights * (house.price_per_night - pricePerNight)).toLocaleString()} GNF</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-gray-400">
-                        <span>{Number(house.price_per_night).toLocaleString()} x {nights} nuit{nights > 1 ? 's' : ''}</span>
+                        <span>
+                          {discountPct > 0 ? (
+                            <><s className="text-gray-600">{Number(house.price_per_night).toLocaleString()}</s> {Number(pricePerNight).toLocaleString()}</>
+                          ) : Number(house.price_per_night).toLocaleString()}
+                          {' '}× {nights} nuit{nights > 1 ? 's' : ''}
+                        </span>
                         <span>{total.toLocaleString()} GNF</span>
                       </div>
-                      <div className="flex justify-between font-black text-white mt-2 pt-2 border-t border-white/10">
+                      <div className="flex justify-between font-black text-white pt-2 border-t border-white/10">
                         <span>Total</span>
                         <span className="text-gnYellow">{total.toLocaleString()} GNF</span>
                       </div>
