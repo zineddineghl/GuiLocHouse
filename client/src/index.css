@@ -39,3 +39,54 @@
 .triline .t-red { @apply bg-gnRed; }
 .triline .t-yellow { @apply bg-gnYellow; }
 .triline .t-green { @apply bg-gnGreen; }
+
+/* ── Leaflet overrides ─────────────────────────────────────────── */
+.leaflet-container { background: #0a0a0a !important; font-family: inherit; }
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.55) !important;
+  border: none !important;
+}
+.leaflet-popup-content { margin: 0 !important; line-height: normal; }
+.leaflet-popup-close-button { top: 6px !important; right: 8px !important; color: #555 !important; font-size: 20px !important; z-index: 10; }
+.leaflet-popup-tip { background: white !important; }
+.leaflet-control-attribution { font-size: 9px !important; opacity: 0.5; }
+
+/* ── Price pin markers ─────────────────────────────────────────── */
+.price-pin {
+  background: white;
+  color: #111;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-block;
+}
+.price-pin--active {
+  background: #111;
+  color: #FCD116;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.6);
+  transform: scale(1.15);
+}
+
+/* ── Cluster icon ──────────────────────────────────────────────── */
+.map-cluster {
+  background: #FCD116;
+  color: #000;
+  font-weight: 900;
+  font-size: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.45);
+  border: 2px solid rgba(255,255,255,0.35);
+}

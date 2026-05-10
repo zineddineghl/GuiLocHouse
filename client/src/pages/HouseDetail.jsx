@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
-import { HomeModernIcon, UsersIcon, MapPinIcon, PhoneIcon, EnvelopeIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { HomeModernIcon, UsersIcon, MapPinIcon, PhoneIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChatBubbleLeftRightIcon, LockClosedIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Navbar from '../components/Navbar';
+import AvailabilityCalendar from '../components/AvailabilityCalendar';
+import DateRangePicker from '../components/DateRangePicker';
+
+const LocationMap = lazy(() => import('../components/LocationMap'));
 
 const TYPE_LABELS = { apartment: 'Appartement', house: 'Maison', villa: 'Villa', studio: 'Studio', room: 'Chambre' };
 
@@ -39,12 +43,48 @@ export default function HouseDetail() {
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
+  const [availRanges, setAvailRanges] = useState([]);
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [blockForm, setBlockForm] = useState({ start_date: '', end_date: '' });
+  const [blockLoading, setBlockLoading] = useState(false);
+
   useEffect(() => {
     axios.get('/api/houses/' + id)
       .then(r => setHouse(r.data))
       .catch(() => navigate('/houses'))
       .finally(() => setLoading(false));
+    axios.get(`/api/houses/${id}/availability`)
+      .then(r => setAvailRanges(r.data.ranges || []))
+      .catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (house && user?.id === house.owner_id) {
+      axios.get(`/api/houses/${id}/blocked-dates`)
+        .then(r => setBlockedDates(r.data))
+        .catch(() => {});
+    }
+  }, [house, user]);
+
+  const handleBlockSubmit = async (e) => {
+    e.preventDefault();
+    if (!blockForm.start_date || !blockForm.end_date) return;
+    setBlockLoading(true);
+    try {
+      const { data } = await axios.post(`/api/houses/${id}/blocked-dates`, blockForm);
+      setBlockedDates(prev => [...prev, data]);
+      setAvailRanges(prev => [...prev, { ...data, type: 'blocked' }]);
+      setBlockForm({ start_date: '', end_date: '' });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur');
+    } finally { setBlockLoading(false); }
+  };
+
+  const handleRemoveBlock = async (blockId) => {
+    await axios.delete(`/api/houses/${id}/blocked-dates/${blockId}`);
+    setBlockedDates(prev => prev.filter(b => b.id !== blockId));
+    setAvailRanges(prev => prev.filter(r => !(r.type === 'blocked' && r.id === blockId)));
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-luxuryBlack flex items-center justify-center">
@@ -137,6 +177,67 @@ export default function HouseDetail() {
               )}
             </div>
 
+            {house.latitude && house.longitude && (
+              <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Localisation</h3>
+                <Suspense fallback={<div className="h-[220px] rounded-xl bg-white/4 animate-pulse" />}>
+                  <LocationMap lat={parseFloat(house.latitude)} lng={parseFloat(house.longitude)} />
+                </Suspense>
+                <p className="text-gray-500 text-xs mt-3 flex items-center gap-1.5">
+                  <MapPinIcon className="h-3.5 w-3.5" />
+                  {house.neighborhood ? house.neighborhood + ', ' : ''}{house.city}
+                </p>
+              </div>
+            )}
+
+            {/* Availability calendar */}
+            <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+              <AvailabilityCalendar bookedRanges={availRanges} />
+            </div>
+
+            {/* Owner: block dates */}
+            {isOwner && (
+              <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <LockClosedIcon className="h-3.5 w-3.5" /> Bloquer des dates
+                </h3>
+                <form onSubmit={handleBlockSubmit} className="space-y-3 mb-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1">Début</label>
+                      <input type="date" required value={blockForm.start_date}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={e => setBlockForm(p => ({ ...p, start_date: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/5 rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/30" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1">Fin</label>
+                      <input type="date" required value={blockForm.end_date}
+                        min={blockForm.start_date || new Date().toISOString().split('T')[0]}
+                        onChange={e => setBlockForm(p => ({ ...p, end_date: e.target.value }))}
+                        className="w-full px-3 py-2 bg-white/5 border border-white/5 rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/30" />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={blockLoading}
+                    className="w-full py-2 bg-orange-400/10 border border-orange-400/20 text-orange-400 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-orange-400/20 transition-colors disabled:opacity-50">
+                    {blockLoading ? '...' : 'Bloquer ces dates'}
+                  </button>
+                </form>
+                {blockedDates.length > 0 && (
+                  <div className="space-y-2">
+                    {blockedDates.map(b => (
+                      <div key={b.id} className="flex items-center justify-between bg-orange-400/5 border border-orange-400/15 rounded-xl px-3 py-2">
+                        <span className="text-orange-400 text-xs font-semibold">{b.start_date} → {b.end_date}</span>
+                        <button onClick={() => handleRemoveBlock(b.id)} className="text-gray-600 hover:text-red-400 transition-colors">
+                          <TrashIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
               <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Proprietaire</h3>
               <div className="flex items-center gap-4">
@@ -175,13 +276,18 @@ export default function HouseDetail() {
               ) : (
                 <form onSubmit={handleBooking} className="space-y-4">
                   {bookingError && <p className="text-gnRed text-xs font-bold bg-gnRed/10 border border-gnRed/20 rounded-xl px-3 py-2">{bookingError}</p>}
-                  <div className="form-group">
-                    <label className="form-label">Arrivee</label>
-                    <input type="date" required value={startDate} onChange={e => setStartDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input-field-sm" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Depart</label>
-                    <input type="date" required value={endDate} onChange={e => setEndDate(e.target.value)} min={startDate || new Date().toISOString().split('T')[0]} className="input-field-sm" />
+                  <div>
+                    <DateRangePicker
+                      startDate={startDate}
+                      endDate={endDate}
+                      bookedRanges={availRanges}
+                      onChange={({ start_date, end_date }) => { setStartDate(start_date); setEndDate(end_date); }}
+                    />
+                    {startDate && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        {startDate}{endDate ? ` → ${endDate}` : ' — sélectionnez la date de départ'}
+                      </p>
+                    )}
                   </div>
                   <div className="form-group">
                     <label className="form-label">Voyageurs</label>

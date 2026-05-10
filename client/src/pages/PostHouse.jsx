@@ -1,11 +1,30 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import Navbar from '../components/Navbar';
-import { PhotoIcon, XMarkIcon, CheckIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, XMarkIcon, CheckIcon, ChevronRightIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
-const CITIES = ['Conakry', 'Kindia', 'Labé', 'Kankan', 'Nzérékoré', 'Mamou', 'Boké'];
+const MapPicker = lazy(() => import('../components/MapPicker'));
+
+const CITY_COORDS = {
+  'Conakry': [9.6412, -13.5784], 'Kindia': [10.0549, -12.8672],
+  'Labé': [11.3181, -12.2845], 'Kankan': [10.3836, -9.3060],
+  'Nzérékoré': [7.7561, -8.8204], 'Mamou': [10.3741, -12.0827],
+  'Boké': [10.9317, -14.2895], 'Guéckédou': [8.5543, -10.1348],
+  'Macenta': [8.5500, -9.4667], 'Kissidougou': [9.1853, -10.0806],
+  'Dalaba': [10.6897, -12.2551], 'Siguiri': [11.4167, -9.1667],
+  'Faranah': [10.0361, -10.7458], 'Télimélé': [10.9083, -13.0333],
+  'Pita': [11.0667, -12.4000], 'Forécariah': [9.4333, -13.0833],
+  'Coyah': [9.7000, -13.3833], 'Fria': [10.3667, -13.5500],
+  'Dubréka': [9.7889, -13.5142], 'Kérouané': [9.2700, -9.0183],
+};
+
+const GUINEA_CITIES = [
+  'Conakry', 'Kindia', 'Labé', 'Kankan', 'Nzérékoré', 'Mamou', 'Boké',
+  'Guéckédou', 'Macenta', 'Kissidougou', 'Dalaba', 'Siguiri', 'Faranah',
+  'Télimélé', 'Pita', 'Forécariah', 'Coyah', 'Fria', 'Dubréka', 'Kérouané',
+];
 
 const HOUSE_TYPES = [
   { value: 'apartment', label: 'Appartement', icon: '🏢' },
@@ -35,6 +54,46 @@ const AMENITIES = [
 ];
 
 const INPUT = 'w-full px-4 py-3 bg-white/5 border border-transparent rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/40 focus:bg-gnYellow/5 transition-all text-sm';
+
+function CityInput({ value, onChange, onCitySelect }) {
+  const [open, setOpen] = useState(false);
+  const filtered = value.trim()
+    ? GUINEA_CITIES.filter(c => c.toLowerCase().startsWith(value.toLowerCase()))
+    : GUINEA_CITIES;
+  const select = (c) => {
+    onChange(c);
+    setOpen(false);
+    const coords = CITY_COORDS[c];
+    if (coords) onCitySelect(coords[0], coords[1]);
+  };
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Conakry, Kindia…"
+        autoComplete="off"
+        className={INPUT}
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-y-auto max-h-[180px] shadow-xl">
+          {filtered.map(c => (
+            <li
+              key={c}
+              onMouseDown={() => select(c)}
+              className="px-4 py-2.5 text-sm text-gray-300 hover:bg-gnYellow/10 hover:text-gnYellow cursor-pointer transition-colors"
+            >
+              {c}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function Stepper({ label, value, onChange, min = 0, max = 20 }) {
   return (
@@ -80,6 +139,9 @@ export default function PostHouse() {
   const [maxGuests, setMaxGuests] = useState(2);
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
+
+  const [latitude, setLatitude] = useState(9.6412);
+  const [longitude, setLongitude] = useState(-13.5784);
 
   const [price, setPrice] = useState('');
   const [minNights, setMinNights] = useState('');
@@ -128,6 +190,8 @@ export default function PostHouse() {
       fd.append('amenities', JSON.stringify(selectedAmenities));
       if (minNights) fd.append('min_nights', minNights);
       if (maxNights) fd.append('max_nights', maxNights);
+      fd.append('latitude', latitude);
+      fd.append('longitude', longitude);
       images.forEach(img => fd.append('images', img));
       const { data } = await axios.post('/api/houses', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate(`/houses/${data.id}`);
@@ -242,17 +306,7 @@ export default function PostHouse() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">Ville *</label>
-                  <input
-                    type="text"
-                    placeholder="Conakry, Kindia…"
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    list="cities-list"
-                    className={INPUT}
-                  />
-                  <datalist id="cities-list">
-                    {CITIES.map(c => <option key={c} value={c} />)}
-                  </datalist>
+                  <CityInput value={city} onChange={setCity} onCitySelect={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">Quartier</label>
@@ -265,6 +319,37 @@ export default function PostHouse() {
                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">Adresse</label>
                 <input type="text" placeholder="Rue, numéro, repère…" value={address}
                   onChange={e => setAddress(e.target.value)} className={INPUT} />
+              </div>
+
+              {/* Map picker */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest">
+                    Localisation exacte
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!navigator.geolocation) return;
+                      navigator.geolocation.getCurrentPosition(p => {
+                        setLatitude(p.coords.latitude);
+                        setLongitude(p.coords.longitude);
+                      });
+                    }}
+                    className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gnYellow hover:text-gnYellow/70 transition-colors"
+                  >
+                    <MapPinIcon className="h-3.5 w-3.5" />
+                    Ma position
+                  </button>
+                </div>
+                <p className="text-xs text-gray-600 mb-2">Cliquez sur la carte ou déplacez le marqueur pour indiquer l'emplacement exact.</p>
+                <Suspense fallback={<div className="h-[260px] rounded-xl bg-white/4 animate-pulse" />}>
+                  <MapPicker
+                    lat={latitude}
+                    lng={longitude}
+                    onChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
+                  />
+                </Suspense>
               </div>
             </>
           )}

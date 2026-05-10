@@ -15,6 +15,7 @@ import MyHouses from './pages/MyHouses';
 import Favorites from './pages/Favorites';
 import Messages from './pages/Messages';
 import Conversation from './pages/Conversation';
+import Admin from './pages/Admin';
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="/favorites" element={<Favorites />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/messages/:id" element={<Conversation />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>

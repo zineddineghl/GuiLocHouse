@@ -17,6 +17,7 @@ app.use('/api/houses', require('./routes/houses'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/favorites', require('./routes/favorites'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Serve client build in production
 if (process.env.NODE_ENV === 'production') {
