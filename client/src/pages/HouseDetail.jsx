@@ -6,6 +6,7 @@ import { HomeModernIcon, UsersIcon, MapPinIcon, PhoneIcon, ChevronLeftIcon, Chev
 import Navbar from '../components/Navbar';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
 import DateRangePicker from '../components/DateRangePicker';
+import ReviewsSection from '../components/ReviewsSection';
 
 const LocationMap = lazy(() => import('../components/LocationMap'));
 
@@ -237,6 +238,12 @@ export default function HouseDetail() {
                 )}
               </div>
             )}
+
+            {/* Reviews */}
+            <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Avis</h3>
+              <ReviewsSection houseId={house.id} ownerId={house.owner_id} />
+            </div>
 
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
               <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Proprietaire</h3>
