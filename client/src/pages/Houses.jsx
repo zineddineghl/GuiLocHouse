@@ -39,6 +39,18 @@ const AMENITIES_LIST = [
   { key: 'pool', label: 'Piscine', icon: '🏊' },
 ];
 
+const SORT_OPTIONS = [
+  { value: 'recent',        label: 'Les plus récentes' },
+  { value: 'price_asc',     label: 'Prix croissant' },
+  { value: 'price_desc',    label: 'Prix décroissant' },
+  { value: 'price_m2_asc',  label: 'Prix par m² croissant' },
+  { value: 'price_m2_desc', label: 'Prix par m² décroissant' },
+  { value: 'rooms_asc',     label: 'Nb de pièces croissant' },
+  { value: 'rooms_desc',    label: 'Nb de pièces décroissant' },
+  { value: 'surface_asc',   label: 'Surface croissante' },
+  { value: 'surface_desc',  label: 'Surface décroissante' },
+];
+
 const TYPE_LABELS = { apartment: 'Appartement', house: 'Maison', villa: 'Villa', studio: 'Studio', room: 'Chambre' };
 const INPUT = 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/60 focus:border-gnYellow/40 transition-all text-sm';
 
@@ -162,6 +174,11 @@ export default function Houses() {
   const [babies, setBabies] = useState(0);
   const guestsRef = useRef(null);
 
+  const [sortBy, setSortBy] = useState('recent');
+  const [showSort, setShowSort] = useState(false);
+  const sortRef = useRef(null);
+  const sortMountedRef = useRef(false);
+
   const [showFilters, setShowFilters] = useState(false);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
@@ -175,10 +192,16 @@ export default function Houses() {
   useEffect(() => {
     const handler = (e) => {
       if (guestsRef.current && !guestsRef.current.contains(e.target)) setShowGuests(false);
+      if (sortRef.current && !sortRef.current.contains(e.target)) setShowSort(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (!sortMountedRef.current) { sortMountedRef.current = true; return; }
+    fetchHouses(1);
+  }, [sortBy]);
 
   const fetchHouses = async (p = 1, extraParams = {}) => {
     setLoading(true);
@@ -195,6 +218,7 @@ export default function Houses() {
       if (beds > 0) params.beds = beds;
       if (petsAllowed) params.pets_allowed = 'true';
       if (selectedAmenities.length > 0) params.amenities = selectedAmenities;
+      if (sortBy && sortBy !== 'recent') params.sort_by = sortBy;
       Object.assign(params, extraParams);
 
       const { data } = await axios.get('/api/houses', { params });
@@ -329,6 +353,34 @@ export default function Houses() {
               </div>
 
               <div className="flex gap-2 ml-auto">
+                {/* Sort dropdown */}
+                <div className="relative" ref={sortRef}>
+                  <button type="button" onClick={() => setShowSort(v => !v)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                      showSort || sortBy !== 'recent'
+                        ? 'border-gnYellow/40 text-gnYellow bg-gnYellow/8'
+                        : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
+                    }`}>
+                    Sélection
+                    <ChevronDownIcon className={`h-3 w-3 transition-transform ${showSort ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showSort && (
+                    <div className="absolute top-full right-0 mt-1 bg-luxuryDark border border-white/10 rounded-2xl py-1 z-50 shadow-2xl w-52">
+                      {SORT_OPTIONS.map(opt => (
+                        <button key={opt.value} type="button"
+                          onClick={() => { setSortBy(opt.value); setShowSort(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-colors ${
+                            sortBy === opt.value
+                              ? 'text-gnYellow bg-gnYellow/8'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Filters toggle */}
                 <button type="button" onClick={() => setShowFilters(v => !v)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${

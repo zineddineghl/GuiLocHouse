@@ -18,6 +18,18 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+const ORDER_BY_MAP = {
+  recent:       'h.created_at DESC',
+  price_asc:    'COALESCE(h.price_per_month, 0) ASC',
+  price_desc:   'COALESCE(h.price_per_month, 0) DESC',
+  price_m2_asc: 'CASE WHEN h.surface_house > 0 THEN COALESCE(h.price_per_month, 0)::float / h.surface_house ELSE NULL END ASC NULLS LAST',
+  price_m2_desc:'CASE WHEN h.surface_house > 0 THEN COALESCE(h.price_per_month, 0)::float / h.surface_house ELSE NULL END DESC NULLS LAST',
+  rooms_asc:    'h.bedrooms ASC NULLS LAST',
+  rooms_desc:   'h.bedrooms DESC NULLS LAST',
+  surface_asc:  'h.surface_house ASC NULLS LAST',
+  surface_desc: 'h.surface_house DESC NULLS LAST',
+};
+
 // GET /api/houses
 router.get('/', async (req, res) => {
   try {
@@ -26,6 +38,7 @@ router.get('/', async (req, res) => {
       bedrooms, pets_allowed, amenities,
       page = 1, limit = 12,
       sw_lat, sw_lng, ne_lat, ne_lng,
+      sort_by = 'recent',
     } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
@@ -63,7 +76,7 @@ router.get('/', async (req, res) => {
       FROM houses h
       JOIN users u ON h.owner_id = u.id
       ${where}
-      ORDER BY h.created_at DESC
+      ORDER BY ${ORDER_BY_MAP[sort_by] || ORDER_BY_MAP.recent}
       LIMIT $${idx++} OFFSET $${idx++}
     `, [...params, parseInt(limit), offset]);
 
