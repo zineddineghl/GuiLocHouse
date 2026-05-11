@@ -5,10 +5,9 @@ const { authenticate } = require('../middleware/auth');
 const { generateLeasePDF } = require('../utils/generateContract');
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 async function sendRejectionEmail(to, renterName, houseTitle) {
   if (!process.env.RESEND_API_KEY) return;
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     await resend.emails.send({
       from: 'GuiLocHouse <noreply@guilochouse.com>',
