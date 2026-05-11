@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   MagnifyingGlassIcon, HomeModernIcon,
   AdjustmentsHorizontalIcon, ChevronDownIcon, MapPinIcon,
-  MapIcon, ListBulletIcon,
+  MapIcon, ListBulletIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { HeartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
@@ -186,6 +186,9 @@ export default function Houses() {
   const [beds, setBeds] = useState(0);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [petsAllowed, setPetsAllowed] = useState(false);
+  const [minSurface, setMinSurface] = useState('');
+  const [minSurfaceLand, setMinSurfaceLand] = useState('');
+  const [availableNow, setAvailableNow] = useState(false);
 
   const totalGuests = adults + children + babies;
 
@@ -218,6 +221,9 @@ export default function Houses() {
       if (beds > 0) params.beds = beds;
       if (petsAllowed) params.pets_allowed = 'true';
       if (selectedAmenities.length > 0) params.amenities = selectedAmenities;
+      if (minSurface) params.min_surface = minSurface;
+      if (minSurfaceLand) params.min_surface_land = minSurfaceLand;
+      if (availableNow) params.available_now = 'true';
       if (sortBy && sortBy !== 'recent') params.sort_by = sortBy;
       Object.assign(params, extraParams);
 
@@ -275,7 +281,15 @@ export default function Houses() {
     );
   };
 
-  const activeFiltersCount = [minPrice, maxPrice, bedrooms > 0, beds > 0, petsAllowed, ...selectedAmenities].filter(Boolean).length;
+  const activeFiltersCount = [minPrice, maxPrice, bedrooms > 0, beds > 0, petsAllowed, minSurface, minSurfaceLand, availableNow, ...selectedAmenities].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setMinPrice(''); setMaxPrice('');
+    setBedrooms(0); setBeds(0);
+    setSelectedAmenities([]); setPetsAllowed(false);
+    setMinSurface(''); setMinSurfaceLand('');
+    setAvailableNow(false);
+  };
   const today = new Date().toISOString().split('T')[0];
   const guestsLabel = totalGuests <= 1 ? '1 voyageur' : `${totalGuests} voyageurs`;
 
@@ -414,60 +428,170 @@ export default function Houses() {
               </div>
             </div>
 
-            {/* Advanced filters */}
-            {showFilters && (
-              <div className="bg-luxuryDark border border-white/8 rounded-2xl p-4 mt-2 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">Prix / mois (GNF)</p>
-                    <div className="flex gap-2">
-                      <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)} className={INPUT} />
-                      <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} className={INPUT} />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">Chambres & Lits (min)</p>
-                    <div className="flex gap-5">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-xs text-gray-500 font-semibold">Chambres</span>
-                        <StepCounter value={bedrooms} onChange={setBedrooms} />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-xs text-gray-500 font-semibold">Lits</span>
-                        <StepCounter value={beds} onChange={setBeds} />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">Équipements</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {AMENITIES_LIST.map(a => (
-                        <button key={a.key} type="button" onClick={() => toggleAmenity(a.key)}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all ${
-                            selectedAmenities.includes(a.key)
-                              ? 'bg-gnYellow text-black border-gnYellow'
-                              : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
-                          }`}>
-                          {a.icon} {a.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                  <div>
-                    <p className="text-white text-sm font-bold">Animaux acceptés</p>
-                    <p className="text-gray-600 text-xs">Uniquement les logements acceptant les animaux</p>
-                  </div>
-                  <button type="button" onClick={() => setPetsAllowed(v => !v)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${petsAllowed ? 'bg-gnYellow' : 'bg-white/10'}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${petsAllowed ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-              </div>
-            )}
           </form>
         </div>
+
+        {/* ── Filter Modal ── */}
+        {showFilters && (
+          <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFilters(false)} />
+            <div className="relative bg-luxuryDark border border-white/10 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 flex-shrink-0">
+                <button type="button" onClick={() => setShowFilters(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/8 transition-colors">
+                  <XMarkIcon className="h-5 w-5 text-white" />
+                </button>
+                <h2 className="text-white font-black text-sm uppercase tracking-widest">Filtres</h2>
+                <div className="w-8" />
+              </div>
+
+              {/* Body */}
+              <div className="overflow-y-auto flex-1 px-6 divide-y divide-white/5">
+
+                {/* Budget */}
+                <div className="py-5">
+                  <h3 className="text-white font-black text-sm mb-4">Budget</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Minimum</label>
+                      <div className="relative">
+                        <input type="number" placeholder="0" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                          className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/60 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-[10px] font-bold">GNF</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Maximum</label>
+                      <div className="relative">
+                        <input type="number" placeholder="∞" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                          className="w-full px-3 py-2 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/60 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-[10px] font-bold">GNF</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pièces & Chambres */}
+                <div className="py-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-bold text-sm">Pièces</p>
+                      <p className="text-gray-600 text-xs">Nombre minimum</p>
+                    </div>
+                    <StepCounter value={bedrooms} onChange={setBedrooms} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white font-bold text-sm">Chambres</p>
+                      <p className="text-gray-600 text-xs">Nombre minimum</p>
+                    </div>
+                    <StepCounter value={beds} onChange={setBeds} />
+                  </div>
+                </div>
+
+                {/* Surfaces */}
+                <div className="py-5">
+                  <h3 className="text-white font-black text-sm mb-4">Surface</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Surface habitable (min)</label>
+                      <div className="relative">
+                        <input type="number" placeholder="0" value={minSurface} onChange={e => setMinSurface(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/60 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">m²</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 block mb-1.5">Surface de terrain (min)</label>
+                      <div className="relative">
+                        <input type="number" placeholder="0" value={minSurfaceLand} onChange={e => setMinSurfaceLand(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gnYellow/60 text-sm" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">m²</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Caractéristiques */}
+                <div className="py-5">
+                  <h3 className="text-white font-black text-sm mb-4">Caractéristiques</h3>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {AMENITIES_LIST.map(a => (
+                      <button key={a.key} type="button" onClick={() => toggleAmenity(a.key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                          selectedAmenities.includes(a.key)
+                            ? 'bg-gnYellow text-black border-gnYellow'
+                            : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
+                        }`}>
+                        {a.icon} {a.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <div>
+                      <p className="text-white text-sm font-bold">Animaux acceptés</p>
+                      <p className="text-gray-600 text-xs mt-0.5">Logements acceptant les animaux</p>
+                    </div>
+                    <button type="button" onClick={() => setPetsAllowed(v => !v)}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${petsAllowed ? 'bg-gnYellow' : 'bg-white/10'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${petsAllowed ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Disponibilité */}
+                <div className="py-5">
+                  <h3 className="text-white font-black text-sm mb-4">Disponibilité</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white text-sm font-bold">Disponible maintenant</p>
+                      <p className="text-gray-600 text-xs mt-0.5">Logements disponibles dès aujourd'hui</p>
+                    </div>
+                    <button type="button" onClick={() => setAvailableNow(v => !v)}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${availableNow ? 'bg-gnYellow' : 'bg-white/10'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${availableNow ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Énergie et chauffage */}
+                <div className="py-5">
+                  <h3 className="text-white font-black text-sm mb-4">Énergie et chauffage</h3>
+                  <button type="button" onClick={() => toggleAmenity('collective_heating')}
+                    className="flex items-center gap-3 group w-full text-left">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                      selectedAmenities.includes('collective_heating')
+                        ? 'bg-gnYellow border-gnYellow'
+                        : 'border-white/20 group-hover:border-white/40'
+                    }`}>
+                      {selectedAmenities.includes('collective_heating') && (
+                        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-white text-sm font-semibold">Chauffage collectif</span>
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-white/8 flex-shrink-0">
+                <button type="button" onClick={resetFilters}
+                  className="text-white text-sm font-bold underline underline-offset-2 hover:text-gray-300 transition-colors">
+                  Réinitialiser
+                </button>
+                <button type="button" onClick={() => { fetchHouses(1); setShowFilters(false); }}
+                  className="btn-primary px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl">
+                  Afficher {total} annonce{total > 1 ? 's' : ''}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* ── Split: List + Map ── */}
         <div className="flex flex-1 overflow-hidden">

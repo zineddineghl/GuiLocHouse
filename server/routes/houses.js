@@ -36,6 +36,7 @@ router.get('/', async (req, res) => {
     const {
       city, neighborhood, rental_type, min_price, max_price,
       bedrooms, pets_allowed, amenities,
+      min_surface, min_surface_land, available_now,
       page = 1, limit = 12,
       sw_lat, sw_lng, ne_lat, ne_lng,
       sort_by = 'recent',
@@ -58,6 +59,9 @@ router.get('/', async (req, res) => {
       where += ` AND h.amenities @> $${idx++}::jsonb`;
       params.push(JSON.stringify(amenitiesArr));
     }
+    if (min_surface) { where += ` AND h.surface_house >= $${idx++}`; params.push(parseInt(min_surface)); }
+    if (min_surface_land) { where += ` AND h.surface_land >= $${idx++}`; params.push(parseInt(min_surface_land)); }
+    if (available_now === 'true') { where += ` AND (h.available_from IS NULL OR h.available_from <= NOW())`; }
     if (sw_lat && ne_lat && sw_lng && ne_lng) {
       where += ` AND h.latitude  BETWEEN $${idx++} AND $${idx++}`;
       where += ` AND h.longitude BETWEEN $${idx++} AND $${idx++}`;
