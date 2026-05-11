@@ -180,6 +180,35 @@ export default function HouseDetail() {
               )}
             </div>
 
+            {(house.check_in_time || house.check_out_time || house.smoking_allowed != null || house.pets_allowed != null || house.extra_rules) && (
+              <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Règles de la maison</h3>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  {house.check_in_time && (
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <span className="text-gnYellow font-bold">→</span> Arrivée à partir de <span className="text-white font-bold">{house.check_in_time}</span>
+                    </div>
+                  )}
+                  {house.check_out_time && (
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <span className="text-gnYellow font-bold">←</span> Départ avant <span className="text-white font-bold">{house.check_out_time}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={house.smoking_allowed ? 'text-green-400' : 'text-red-400'}>{house.smoking_allowed ? '✓' : '✗'}</span>
+                    <span className="text-gray-300">{house.smoking_allowed ? 'Fumeur autorisé' : 'Non-fumeur'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={house.pets_allowed ? 'text-green-400' : 'text-red-400'}>{house.pets_allowed ? '✓' : '✗'}</span>
+                    <span className="text-gray-300">{house.pets_allowed ? 'Animaux acceptés' : 'Animaux non acceptés'}</span>
+                  </div>
+                </div>
+                {house.extra_rules && (
+                  <p className="text-gray-500 text-xs leading-relaxed border-t border-white/5 pt-3">{house.extra_rules}</p>
+                )}
+              </div>
+            )}
+
             {house.latitude && house.longitude && (
               <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
                 <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Localisation</h3>

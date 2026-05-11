@@ -74,6 +74,7 @@ router.get('/', async (req, res) => {
              h.price_per_night, h.bedrooms, h.beds, h.bathrooms, h.max_guests,
              h.images, h.amenities, h.pets_allowed, h.available, h.created_at,
              h.latitude, h.longitude, h.discount_weekly, h.discount_monthly,
+             h.check_in_time, h.check_out_time, h.smoking_allowed, h.extra_rules,
              u.name as owner_name, u.id as owner_id
       FROM houses h
       JOIN users u ON h.owner_id = u.id
@@ -168,15 +169,15 @@ const CITY_COORDS = {
 // POST /api/houses
 router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
   try {
-    const { title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, amenities, min_nights, max_nights, latitude, longitude, discount_weekly, discount_monthly } = req.body;
+    const { title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, amenities, min_nights, max_nights, latitude, longitude, discount_weekly, discount_monthly, check_in_time, check_out_time, smoking_allowed, extra_rules } = req.body;
     if (!title || !price_per_night || !city) return res.status(400).json({ error: 'Champs requis manquants' });
 
     const images = (req.files || []).map(f => f.path);
     const amenitiesArr = amenities ? JSON.parse(amenities) : [];
 
     const { rows } = await pool.query(`
-      INSERT INTO houses (owner_id, title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, images, amenities, min_nights, max_nights, discount_weekly, discount_monthly)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+      INSERT INTO houses (owner_id, title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, images, amenities, min_nights, max_nights, discount_weekly, discount_monthly, check_in_time, check_out_time, smoking_allowed, extra_rules)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING *
     `, [
       req.user.id, title, description,
@@ -191,6 +192,10 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
       max_nights ? parseInt(max_nights) : null,
       parseInt(discount_weekly) || 0,
       parseInt(discount_monthly) || 0,
+      check_in_time || null,
+      check_out_time || null,
+      smoking_allowed === 'true',
+      extra_rules || null,
     ]);
 
     // Use exact coords from client, fallback to city-level coords

@@ -148,6 +148,10 @@ export default function PostHouse() {
   const [maxNights, setMaxNights] = useState('');
   const [discountWeekly, setDiscountWeekly] = useState('');
   const [discountMonthly, setDiscountMonthly] = useState('');
+  const [checkInTime, setCheckInTime] = useState('14:00');
+  const [checkOutTime, setCheckOutTime] = useState('11:00');
+  const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [extraRules, setExtraRules] = useState('');
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const fileRef = useRef(null);
@@ -194,6 +198,10 @@ export default function PostHouse() {
       if (maxNights) fd.append('max_nights', maxNights);
       if (discountWeekly) fd.append('discount_weekly', discountWeekly);
       if (discountMonthly) fd.append('discount_monthly', discountMonthly);
+      fd.append('check_in_time', checkInTime);
+      fd.append('check_out_time', checkOutTime);
+      fd.append('smoking_allowed', smokingAllowed ? 'true' : 'false');
+      if (extraRules.trim()) fd.append('extra_rules', extraRules.trim());
       fd.append('latitude', latitude);
       fd.append('longitude', longitude);
       images.forEach(img => fd.append('images', img));
@@ -395,6 +403,56 @@ export default function PostHouse() {
                       <span>{a.icon}</span> {a.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Règles de la maison */}
+              <div>
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest mb-3">Règles de la maison</p>
+                <div className="bg-white/4 rounded-xl p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Arrivée à partir de</label>
+                      <select value={checkInTime} onChange={e => setCheckInTime(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40">
+                        {['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(t => (
+                          <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Départ avant</label>
+                      <select value={checkOutTime} onChange={e => setCheckOutTime(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40">
+                        {['08:00','09:00','10:00','11:00','12:00','13:00','14:00'].map(t => (
+                          <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="h-px bg-white/5" />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-300 text-sm">Fumeur autorisé</p>
+                      <p className="text-gray-600 text-xs mt-0.5">Cigarettes, narguilé, etc.</p>
+                    </div>
+                    <button type="button" onClick={() => setSmokingAllowed(v => !v)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${smokingAllowed ? 'bg-gnYellow' : 'bg-white/10'}`}>
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${smokingAllowed ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  <div className="h-px bg-white/5" />
+                  <div>
+                    <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Règles supplémentaires</label>
+                    <textarea
+                      placeholder="Ex : Pas de soirées, animaux de compagnie non acceptés au-delà du 1er étage…"
+                      value={extraRules}
+                      onChange={e => setExtraRules(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      className={INPUT + ' resize-none'}
+                    />
+                  </div>
                 </div>
               </div>
             </>
