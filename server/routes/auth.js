@@ -4,6 +4,20 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { authenticate } = require('../middleware/auth');
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+const idStorage = new CloudinaryStorage({
+  cloudinary,
+  params: { folder: 'guilochouse-ids', allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'], resource_type: 'auto' },
+});
+const uploadId = multer({ storage: idStorage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'guilochouse_secret_2024';
 
@@ -52,12 +66,28 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT id, name, email, phone, role, is_admin, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, phone, role, is_admin, is_verified, verify_requested, id_document_url, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json(rows[0]);
   } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// POST /api/auth/verify-request — upload pièce d'identité
+router.post('/verify-request', authenticate, uploadId.single('id_document'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Aucun document fourni' });
+    const url = req.file.path;
+    await pool.query(
+      'UPDATE users SET id_document_url = $1, verify_requested = TRUE WHERE id = $2',
+      [url, req.user.id]
+    );
+    res.json({ ok: true, message: 'Demande de vérification envoyée. Un administrateur va valider votre compte.' });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

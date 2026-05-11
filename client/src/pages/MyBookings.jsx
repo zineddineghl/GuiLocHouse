@@ -5,7 +5,7 @@ import { useAuth } from '../App';
 import Navbar from '../components/Navbar';
 import {
   CalendarDaysIcon, UserIcon, HomeModernIcon,
-  CheckCircleIcon, XCircleIcon, ClockIcon, XMarkIcon,
+  CheckCircleIcon, XCircleIcon, ClockIcon, XMarkIcon, DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 const STATUS = {
@@ -17,9 +17,6 @@ const STATUS = {
 
 function fmt(dateStr) {
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-function nights(start, end) {
-  return Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
 }
 
 export default function MyBookings() {
@@ -59,11 +56,15 @@ export default function MyBookings() {
     } catch { /* ignore */ }
   };
 
+  const downloadContract = (bookingId) => {
+    window.open(`/api/bookings/${bookingId}/contract`, '_blank');
+  };
+
   if (!user) return null;
 
   const TABS = [
-    { id: 'mine',     label: 'Mes réservations',    count: mine.length },
-    { id: 'received', label: 'Réservations reçues',  count: received.length },
+    { id: 'mine',     label: 'Mes candidatures',    count: mine.length },
+    { id: 'received', label: 'Candidatures reçues',  count: received.length },
   ];
 
   return (
@@ -72,8 +73,8 @@ export default function MyBookings() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
 
         <div>
-          <h1 className="text-3xl font-display font-black text-white tracking-tighter">Réservations</h1>
-          <p className="text-gray-500 text-sm mt-1">Gérez vos réservations et celles de vos logements</p>
+          <h1 className="text-3xl font-display font-black text-white tracking-tighter">Locations</h1>
+          <p className="text-gray-500 text-sm mt-1">Gérez vos candidatures et celles de vos logements</p>
         </div>
 
         {/* Tabs */}
@@ -102,13 +103,13 @@ export default function MyBookings() {
           </div>
         )}
 
-        {/* ── Mes réservations ────────────────────────────────────────────── */}
+        {/* ── Mes candidatures ─────────────────────────────────────────────── */}
         {!loading && tab === 'mine' && (
           <div className="space-y-4">
             {mine.length === 0 && (
               <div className="bg-luxuryDark rounded-3xl border border-white/5 p-16 text-center">
                 <CalendarDaysIcon className="h-12 w-12 text-gray-700 mx-auto mb-4" />
-                <p className="text-gray-500 text-sm">Vous n'avez pas encore de réservation</p>
+                <p className="text-gray-500 text-sm">Vous n'avez pas encore de candidature</p>
                 <Link to="/houses" className="inline-block mt-4 px-6 py-2.5 bg-gnYellow text-luxuryBlack font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gnYellow/90 transition-all">
                   Explorer les logements
                 </Link>
@@ -117,12 +118,11 @@ export default function MyBookings() {
 
             {mine.map(b => {
               const imgs = Array.isArray(b.images) ? b.images : (typeof b.images === 'string' ? JSON.parse(b.images || '[]') : []);
-              const n = nights(b.start_date, b.end_date);
+              const months = b.duration_months || 1;
               const st = STATUS[b.status] || STATUS.pending;
               return (
                 <div key={b.id} className="bg-luxuryDark rounded-3xl border border-white/5 shadow-xl overflow-hidden">
                   <div className="flex flex-col sm:flex-row">
-                    {/* Image */}
                     <div className="w-full sm:w-44 h-36 sm:h-auto flex-shrink-0 bg-black/60">
                       {imgs[0]
                         ? <img src={imgs[0]} alt={b.house_title} className="w-full h-full object-cover opacity-80" />
@@ -130,7 +130,6 @@ export default function MyBookings() {
                       }
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 p-5 min-w-0">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
@@ -153,12 +152,12 @@ export default function MyBookings() {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <ClockIcon className="h-3.5 w-3.5 text-gray-600" />
-                          <span>{n} nuit{n > 1 ? 's' : ''}</span>
+                          <span>{months} mois</span>
                         </div>
                         {b.guests && (
                           <div className="flex items-center gap-1.5">
                             <UserIcon className="h-3.5 w-3.5 text-gray-600" />
-                            <span>{b.guests} voyageur{b.guests > 1 ? 's' : ''}</span>
+                            <span>{b.guests} personne{b.guests > 1 ? 's' : ''}</span>
                           </div>
                         )}
                       </div>
@@ -166,18 +165,29 @@ export default function MyBookings() {
                       <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
                         <span className="text-gnYellow font-black text-lg">
                           {Number(b.total_price).toLocaleString('fr-FR')} GNF
-                          <span className="text-gray-600 font-normal text-xs ml-1">total</span>
+                          <span className="text-gray-600 font-normal text-xs ml-1">total bail</span>
                         </span>
 
-                        {(b.status === 'pending' || b.status === 'confirmed') && (
-                          <button
-                            onClick={() => updateStatus(b.id, 'cancelled', true)}
-                            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnRed border border-gnRed/30 bg-gnRed/5 hover:bg-gnRed/10 rounded-xl transition-colors"
-                          >
-                            <XMarkIcon className="h-3.5 w-3.5" />
-                            Annuler
-                          </button>
-                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          {b.status === 'confirmed' && (
+                            <button
+                              onClick={() => downloadContract(b.id)}
+                              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnYellow border border-gnYellow/30 bg-gnYellow/5 hover:bg-gnYellow/10 rounded-xl transition-colors"
+                            >
+                              <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+                              Contrat PDF
+                            </button>
+                          )}
+                          {(b.status === 'pending' || b.status === 'confirmed') && (
+                            <button
+                              onClick={() => updateStatus(b.id, 'cancelled', true)}
+                              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnRed border border-gnRed/30 bg-gnRed/5 hover:bg-gnRed/10 rounded-xl transition-colors"
+                            >
+                              <XMarkIcon className="h-3.5 w-3.5" />
+                              Annuler
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {b.message && (
@@ -193,18 +203,18 @@ export default function MyBookings() {
           </div>
         )}
 
-        {/* ── Réservations reçues ──────────────────────────────────────────── */}
+        {/* ── Candidatures reçues ──────────────────────────────────────────── */}
         {!loading && tab === 'received' && (
           <div className="space-y-4">
             {received.length === 0 && (
               <div className="bg-luxuryDark rounded-3xl border border-white/5 p-16 text-center">
                 <HomeModernIcon className="h-12 w-12 text-gray-700 mx-auto mb-4" />
-                <p className="text-gray-500 text-sm">Aucune réservation reçue pour le moment</p>
+                <p className="text-gray-500 text-sm">Aucune candidature reçue pour le moment</p>
               </div>
             )}
 
             {received.map(b => {
-              const n = nights(b.start_date, b.end_date);
+              const months = b.duration_months || 1;
               const st = STATUS[b.status] || STATUS.pending;
               return (
                 <div key={b.id} className="bg-luxuryDark rounded-3xl border border-white/5 shadow-xl p-6">
@@ -217,9 +227,8 @@ export default function MyBookings() {
                         </div>
                         <div>
                           <p className="text-white text-sm font-bold">{b.renter_name}</p>
-                          {b.renter_phone && (
-                            <p className="text-gray-500 text-xs">{b.renter_phone}</p>
-                          )}
+                          {b.renter_phone && <p className="text-gray-500 text-xs">{b.renter_phone}</p>}
+                          {b.renter_email && <p className="text-gray-600 text-xs">{b.renter_email}</p>}
                         </div>
                       </div>
                     </div>
@@ -235,12 +244,12 @@ export default function MyBookings() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <ClockIcon className="h-3.5 w-3.5 text-gray-600" />
-                      <span>{n} nuit{n > 1 ? 's' : ''}</span>
+                      <span>{months} mois</span>
                     </div>
                     {b.guests && (
                       <div className="flex items-center gap-1.5">
                         <UserIcon className="h-3.5 w-3.5 text-gray-600" />
-                        <span>{b.guests} voyageur{b.guests > 1 ? 's' : ''}</span>
+                        <span>{b.guests} personne{b.guests > 1 ? 's' : ''}</span>
                       </div>
                     )}
                   </div>
@@ -254,27 +263,38 @@ export default function MyBookings() {
                   <div className="flex items-center justify-between flex-wrap gap-3 pt-4 border-t border-white/5">
                     <span className="text-gnYellow font-black text-lg">
                       {Number(b.total_price).toLocaleString('fr-FR')} GNF
-                      <span className="text-gray-600 font-normal text-xs ml-1">total</span>
+                      <span className="text-gray-600 font-normal text-xs ml-1">total bail</span>
                     </span>
 
-                    {b.status === 'pending' && (
-                      <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {b.status === 'confirmed' && (
                         <button
-                          onClick={() => updateStatus(b.id, 'confirmed', false)}
-                          className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-gnGreen hover:bg-gnGreen/80 rounded-xl transition-colors"
+                          onClick={() => downloadContract(b.id)}
+                          className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnYellow border border-gnYellow/30 bg-gnYellow/5 hover:bg-gnYellow/10 rounded-xl transition-colors"
                         >
-                          <CheckCircleIcon className="h-4 w-4" />
-                          Confirmer
+                          <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+                          Contrat PDF
                         </button>
-                        <button
-                          onClick={() => updateStatus(b.id, 'rejected', false)}
-                          className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnRed border border-gnRed/30 bg-gnRed/5 hover:bg-gnRed/10 rounded-xl transition-colors"
-                        >
-                          <XCircleIcon className="h-4 w-4" />
-                          Refuser
-                        </button>
-                      </div>
-                    )}
+                      )}
+                      {b.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateStatus(b.id, 'confirmed', false)}
+                            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-gnGreen hover:bg-gnGreen/80 rounded-xl transition-colors"
+                          >
+                            <CheckCircleIcon className="h-4 w-4" />
+                            Accepter
+                          </button>
+                          <button
+                            onClick={() => updateStatus(b.id, 'rejected', false)}
+                            className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnRed border border-gnRed/30 bg-gnRed/5 hover:bg-gnRed/10 rounded-xl transition-colors"
+                          >
+                            <XCircleIcon className="h-4 w-4" />
+                            Refuser
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

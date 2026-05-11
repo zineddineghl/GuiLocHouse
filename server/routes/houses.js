@@ -23,8 +23,8 @@ router.get('/', async (req, res) => {
   try {
     const {
       city, neighborhood, rental_type, min_price, max_price,
-      bedrooms, beds, guests, pets_allowed, amenities,
-      check_in, check_out, page = 1, limit = 12,
+      bedrooms, pets_allowed, amenities,
+      page = 1, limit = 12,
       sw_lat, sw_lng, ne_lat, ne_lng,
     } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -36,11 +36,9 @@ router.get('/', async (req, res) => {
     if (city) { where += ` AND h.city ILIKE $${idx++}`; params.push(`%${city}%`); }
     if (neighborhood) { where += ` AND h.neighborhood ILIKE $${idx++}`; params.push(`%${neighborhood}%`); }
     if (rental_type) { where += ` AND h.rental_type = $${idx++}`; params.push(rental_type); }
-    if (min_price) { where += ` AND h.price_per_night >= $${idx++}`; params.push(parseInt(min_price)); }
-    if (max_price) { where += ` AND h.price_per_night <= $${idx++}`; params.push(parseInt(max_price)); }
+    if (min_price) { where += ` AND h.price_per_month >= $${idx++}`; params.push(parseInt(min_price)); }
+    if (max_price) { where += ` AND h.price_per_month <= $${idx++}`; params.push(parseInt(max_price)); }
     if (bedrooms) { where += ` AND h.bedrooms >= $${idx++}`; params.push(parseInt(bedrooms)); }
-    if (beds) { where += ` AND h.beds >= $${idx++}`; params.push(parseInt(beds)); }
-    if (guests) { where += ` AND h.max_guests >= $${idx++}`; params.push(parseInt(guests)); }
     if (pets_allowed === 'true') { where += ` AND h.pets_allowed = 1`; }
     if (amenities) {
       const amenitiesArr = Array.isArray(amenities) ? amenities : [amenities];
@@ -53,29 +51,13 @@ router.get('/', async (req, res) => {
       params.push(parseFloat(sw_lat), parseFloat(ne_lat), parseFloat(sw_lng), parseFloat(ne_lng));
     }
 
-    if (check_in && check_out) {
-      where += `
-        AND h.id NOT IN (
-          SELECT house_id FROM bookings
-          WHERE status IN ('pending', 'confirmed')
-          AND NOT (end_date < $${idx++} OR start_date > $${idx++})
-        )
-        AND h.id NOT IN (
-          SELECT house_id FROM house_blocked_dates
-          WHERE NOT (end_date < $${idx++} OR start_date > $${idx++})
-        )
-      `;
-      params.push(check_in, check_out, check_in, check_out);
-    }
-
     const countResult = await pool.query(`SELECT COUNT(*)::int as total FROM houses h ${where}`, params);
     const { rows } = await pool.query(`
       SELECT h.id, h.title, h.type, h.rental_type, h.city, h.neighborhood,
-             h.price_per_night, h.bedrooms, h.beds, h.bathrooms, h.max_guests,
+             h.price_per_month, h.bedrooms, h.bathrooms, h.max_guests,
              h.images, h.amenities, h.pets_allowed, h.available, h.created_at,
-             h.latitude, h.longitude, h.discount_weekly, h.discount_monthly,
+             h.latitude, h.longitude, h.caution_amount, h.available_from,
              h.check_in_time, h.check_out_time, h.smoking_allowed, h.extra_rules,
-             h.cancellation_policy,
              u.name as owner_name, u.id as owner_id
       FROM houses h
       JOIN users u ON h.owner_id = u.id
@@ -95,8 +77,8 @@ router.get('/', async (req, res) => {
 router.get('/my', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, type, rental_type, city, neighborhood, price_per_night,
-              bedrooms, beds, max_guests, images, available, created_at
+      `SELECT id, title, type, rental_type, city, neighborhood, price_per_month,
+              bedrooms, bathrooms, max_guests, images, available, created_at, available_from
        FROM houses WHERE owner_id = $1 ORDER BY created_at DESC`,
       [req.user.id]
     );
@@ -180,39 +162,47 @@ const CITY_COORDS = {
 // POST /api/houses
 router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
   try {
-    const { title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, amenities, min_nights, max_nights, latitude, longitude, discount_weekly, discount_monthly, check_in_time, check_out_time, smoking_allowed, extra_rules, cancellation_policy } = req.body;
-    if (!title || !price_per_night || !city) return res.status(400).json({ error: 'Champs requis manquants' });
+    const {
+      title, description, type, rental_type, city, neighborhood, address,
+      price_per_month, caution_amount, available_from,
+      bedrooms, bathrooms, max_guests, pets_allowed, amenities,
+      check_in_time, check_out_time, smoking_allowed, extra_rules,
+      latitude, longitude,
+    } = req.body;
+
+    if (!title || !price_per_month || !city) return res.status(400).json({ error: 'Champs requis manquants' });
 
     const images = (req.files || []).map(f => f.path);
     const amenitiesArr = amenities ? JSON.parse(amenities) : [];
-    const validPolicies = ['flexible', 'moderate', 'strict'];
-    const policy = validPolicies.includes(cancellation_policy) ? cancellation_policy : 'flexible';
 
     const { rows } = await pool.query(`
-      INSERT INTO houses (owner_id, title, description, type, rental_type, city, neighborhood, address, price_per_night, bedrooms, beds, bathrooms, max_guests, pets_allowed, images, amenities, min_nights, max_nights, discount_weekly, discount_monthly, check_in_time, check_out_time, smoking_allowed, extra_rules, cancellation_policy)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+      INSERT INTO houses (
+        owner_id, title, description, type, rental_type, city, neighborhood, address,
+        price_per_night, price_per_month, caution_amount, available_from,
+        bedrooms, bathrooms, max_guests, pets_allowed, images, amenities,
+        check_in_time, check_out_time, smoking_allowed, extra_rules
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
       RETURNING *
     `, [
       req.user.id, title, description,
       type || 'apartment', rental_type || 'entire',
       city, neighborhood, address,
-      parseInt(price_per_night),
-      parseInt(bedrooms) || 1, parseInt(beds) || 1, parseInt(bathrooms) || 1,
+      parseInt(price_per_month), // price_per_night gardé identique pour compatibilité
+      parseInt(price_per_month),
+      parseInt(caution_amount) || 0,
+      available_from || null,
+      parseInt(bedrooms) || 1, parseInt(bathrooms) || 1,
       parseInt(max_guests) || 2,
       pets_allowed === 'true' ? 1 : 0,
       JSON.stringify(images), JSON.stringify(amenitiesArr),
-      min_nights ? parseInt(min_nights) : 1,
-      max_nights ? parseInt(max_nights) : null,
-      parseInt(discount_weekly) || 0,
-      parseInt(discount_monthly) || 0,
       check_in_time || null,
       check_out_time || null,
       smoking_allowed === 'true',
       extra_rules || null,
-      policy,
     ]);
 
-    // Use exact coords from client, fallback to city-level coords
+    // Coordonnées GPS
     let lat = parseFloat(latitude);
     let lng = parseFloat(longitude);
     if (!lat || !lng) {
@@ -242,17 +232,6 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
-});
-
-// GET /api/houses/:id/availability — booked + blocked ranges
-router.get('/:id/availability', async (req, res) => {
-  try {
-    const [bookings, blocked] = await Promise.all([
-      pool.query(`SELECT start_date, end_date, 'booked' as type FROM bookings WHERE house_id = $1 AND status IN ('pending','confirmed')`, [req.params.id]),
-      pool.query(`SELECT id, start_date, end_date, 'blocked' as type FROM house_blocked_dates WHERE house_id = $1`, [req.params.id]),
-    ]);
-    res.json({ ranges: [...bookings.rows, ...blocked.rows] });
-  } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
 });
 
 // GET /api/houses/:id/blocked-dates — pour le propriétaire

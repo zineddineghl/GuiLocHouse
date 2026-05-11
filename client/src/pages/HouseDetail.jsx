@@ -2,10 +2,9 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
-import { HomeModernIcon, UsersIcon, MapPinIcon, PhoneIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChatBubbleLeftRightIcon, LockClosedIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { HomeModernIcon, UsersIcon, MapPinIcon, PhoneIcon, ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon, ChatBubbleLeftRightIcon, LockClosedIcon, TrashIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import Navbar from '../components/Navbar';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
-import DateRangePicker from '../components/DateRangePicker';
 import ReviewsSection from '../components/ReviewsSection';
 
 const LocationMap = lazy(() => import('../components/LocationMap'));
@@ -37,7 +36,7 @@ export default function HouseDetail() {
   const [loading, setLoading] = useState(true);
   const [imgIdx, setImgIdx] = useState(0);
   const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [durationMonths, setDurationMonths] = useState(1);
   const [guests, setGuests] = useState(1);
   const [message, setMessage] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -123,18 +122,25 @@ export default function HouseDetail() {
     await axios.delete(`/api/houses/${id}/cohosts/${userId}`);
     setCohosts(prev => prev.filter(c => c.id !== userId));
   };
-  const nights = startDate && endDate ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000)) : 0;
-  const discountPct = nights >= 28 ? (house.discount_monthly || 0) : nights >= 7 ? (house.discount_weekly || 0) : 0;
-  const pricePerNight = Math.round(house.price_per_night * (1 - discountPct / 100));
-  const total = nights * pricePerNight;
+  const pricePerMonth = house.price_per_month || house.price_per_night || 0;
+  const total = pricePerMonth * durationMonths;
+
+  // Calculer la date de fin estimée
+  const estimatedEndDate = (() => {
+    if (!startDate) return null;
+    const d = new Date(startDate);
+    d.setMonth(d.getMonth() + durationMonths);
+    return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
+  })();
 
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!user) return navigate('/login');
+    if (!startDate) { setBookingError('Veuillez choisir une date d\'entrée.'); return; }
     setBookingError('');
     setBookingLoading(true);
     try {
-      await axios.post('/api/bookings', { house_id: house.id, start_date: startDate, end_date: endDate, guests, message });
+      await axios.post('/api/bookings', { house_id: house.id, start_date: startDate, duration_months: durationMonths, guests, message });
       setBookingSuccess(true);
     } catch (err) {
       setBookingError(err.response?.data?.error || 'Erreur reservation');
@@ -190,8 +196,13 @@ export default function HouseDetail() {
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <span className="text-gnYellow font-black text-2xl">{Number(house.price_per_night).toLocaleString()}</span>
-                  <span className="text-gray-500 text-xs font-bold block">GNF / nuit</span>
+                  <span className="text-gnYellow font-black text-2xl">{Number(pricePerMonth).toLocaleString()}</span>
+                  <span className="text-gray-500 text-xs font-bold block">GNF / mois</span>
+                  {house.available_from && (
+                    <span className="text-gray-600 text-[10px] block mt-0.5">
+                      Dispo. {new Date(house.available_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-4 py-4 border-y border-white/5">
@@ -375,83 +386,97 @@ export default function HouseDetail() {
 
           <div className="lg:col-span-1">
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6 sticky top-24">
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-gnYellow font-black text-2xl">{Number(house.price_per_night).toLocaleString()}</span>
-                <span className="text-gray-500 text-sm font-bold">GNF / nuit</span>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-gnYellow font-black text-2xl">{Number(pricePerMonth).toLocaleString()}</span>
+                <span className="text-gray-500 text-sm font-bold">GNF / mois</span>
               </div>
+              <p className="text-gray-600 text-xs mb-5">Charges comprises · Paiement direct</p>
               {(isOwner || isCohost) ? (
                 <p className="text-center text-gray-500 text-sm font-bold py-4">{isOwner ? 'Votre annonce' : 'Vous êtes co-hôte'}</p>
               ) : bookingSuccess ? (
                 <div className="text-center py-4">
                   <CalendarDaysIcon className="h-12 w-12 text-gnGreen mx-auto mb-3" />
-                  <p className="text-gnGreen font-black text-sm uppercase tracking-widest">Demande envoyee !</p>
-                  <p className="text-gray-500 text-xs mt-2">Le proprietaire va vous contacter.</p>
+                  <p className="text-gnGreen font-black text-sm uppercase tracking-widest">Demande envoyée !</p>
+                  <p className="text-gray-500 text-xs mt-2">Le propriétaire va examiner votre dossier et vous contacter.</p>
                 </div>
               ) : (
                 <form onSubmit={handleBooking} className="space-y-4">
                   {bookingError && <p className="text-gnRed text-xs font-bold bg-gnRed/10 border border-gnRed/20 rounded-xl px-3 py-2">{bookingError}</p>}
+
+                  {/* Date d'entrée */}
                   <div>
-                    <DateRangePicker
-                      startDate={startDate}
-                      endDate={endDate}
-                      bookedRanges={availRanges}
-                      onChange={({ start_date, end_date }) => { setStartDate(start_date); setEndDate(end_date); }}
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-1.5">Date d'entrée souhaitée</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      min={house.available_from || new Date().toISOString().split('T')[0]}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-white/5 border border-white/8 rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/30"
                     />
-                    {startDate && (
-                      <p className="text-xs text-gray-500 mt-2 text-center">
-                        {startDate}{endDate ? ` → ${endDate}` : ' — sélectionnez la date de départ'}
+                    {house.available_from && (
+                      <p className="text-gray-600 text-xs mt-1">
+                        Disponible à partir du {new Date(house.available_from).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                     )}
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Voyageurs</label>
-                    <input type="number" min={1} max={house.max_guests} value={guests} onChange={e => setGuests(parseInt(e.target.value))} className="input-field-sm" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Message (optionnel)</label>
-                    <textarea rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Presentez-vous..." className="input-field-sm resize-none" />
-                  </div>
-                  {nights > 0 && (
-                    <div className="bg-white/5 rounded-xl p-3 text-sm space-y-1.5">
-                      {discountPct > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-gnYellow uppercase tracking-widest">
-                            Remise {nights >= 28 ? 'mensuelle' : 'semaine'} -{discountPct}%
-                          </span>
-                          <span className="text-gnYellow text-xs font-bold">-{Math.round(nights * (house.price_per_night - pricePerNight)).toLocaleString()} GNF</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-gray-400">
-                        <span>
-                          {discountPct > 0 ? (
-                            <><s className="text-gray-600">{Number(house.price_per_night).toLocaleString()}</s> {Number(pricePerNight).toLocaleString()}</>
-                          ) : Number(house.price_per_night).toLocaleString()}
-                          {' '}× {nights} nuit{nights > 1 ? 's' : ''}
-                        </span>
-                        <span>{total.toLocaleString()} GNF</span>
-                      </div>
-                      <div className="flex justify-between font-black text-white pt-2 border-t border-white/10">
-                        <span>Total</span>
-                        <span className="text-gnYellow">{total.toLocaleString()} GNF</span>
-                      </div>
+
+                  {/* Durée */}
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-1.5">
+                      Durée du bail — {durationMonths} mois
+                    </label>
+                    <input
+                      type="range"
+                      min={1} max={24} step={1}
+                      value={durationMonths}
+                      onChange={e => setDurationMonths(parseInt(e.target.value))}
+                      className="w-full accent-gnYellow"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-600 mt-1">
+                      <span>1 mois</span>
+                      <span>24 mois</span>
                     </div>
-                  )}
-                  {house.cancellation_policy && (() => {
-                    const policies = {
-                      flexible: { label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 24h avant l\'arrivée.' },
-                      moderate: { label: 'Modérée',  desc: 'Annulation gratuite jusqu\'à 5 jours avant l\'arrivée.' },
-                      strict:   { label: 'Stricte',  desc: 'Annulation gratuite dans les 48h suivant la réservation.' },
-                    };
-                    const p = policies[house.cancellation_policy];
-                    return p ? (
-                      <div className="flex items-start gap-2 text-xs text-gray-500 border-t border-white/5 pt-3">
-                        <span className="text-gnYellow font-black flex-shrink-0">!</span>
-                        <span><span className="text-gray-300 font-bold">Politique {p.label}</span> — {p.desc}</span>
+                    {startDate && estimatedEndDate && (
+                      <p className="text-xs text-gray-500 mt-2 text-center">
+                        {new Date(startDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} → {estimatedEndDate}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Récapitulatif financier */}
+                  <div className="bg-white/5 rounded-xl p-3 text-sm space-y-1.5">
+                    <div className="flex justify-between text-gray-400">
+                      <span>{Number(pricePerMonth).toLocaleString()} GNF × {durationMonths} mois</span>
+                      <span>{total.toLocaleString()} GNF</span>
+                    </div>
+                    {house.caution_amount > 0 && (
+                      <div className="flex justify-between text-gray-500 text-xs">
+                        <span>Caution (à part)</span>
+                        <span>{Number(house.caution_amount).toLocaleString()} GNF</span>
                       </div>
-                    ) : null;
-                  })()}
+                    )}
+                    <div className="flex justify-between font-black text-white pt-2 border-t border-white/10">
+                      <span>Total loyer</span>
+                      <span className="text-gnYellow">{total.toLocaleString()} GNF</span>
+                    </div>
+                    <p className="text-[10px] text-gray-600 pt-1">Paiement direct au propriétaire (virement / espèces)</p>
+                  </div>
+
+                  {/* Message */}
+                  <div>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-1.5">Message / Présentation</label>
+                    <textarea rows={3} value={message} onChange={e => setMessage(e.target.value)}
+                      placeholder="Présentez-vous, votre situation, pourquoi ce logement…"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/8 rounded-xl text-white text-xs placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-gnYellow/30 resize-none" />
+                  </div>
+
+                  <div className="flex items-start gap-2 text-xs text-gray-500 border-t border-white/5 pt-3">
+                    <span className="text-gnYellow font-black flex-shrink-0">!</span>
+                    <span>Votre compte doit être <span className="text-gray-300 font-bold">vérifié</span> pour envoyer une demande. <a href="/profile" className="text-gnYellow underline">Vérifier mon compte</a></span>
+                  </div>
+
                   <button type="submit" disabled={bookingLoading} className="btn-primary w-full">
-                    {!user ? 'Se connecter pour reserver' : bookingLoading ? 'Envoi...' : 'Envoyer la demande'}
+                    {!user ? 'Se connecter pour candidater' : bookingLoading ? 'Envoi...' : 'Envoyer ma candidature'}
                   </button>
                 </form>
               )}

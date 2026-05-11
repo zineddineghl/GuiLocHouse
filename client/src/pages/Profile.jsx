@@ -5,7 +5,7 @@ import { useAuth } from '../App';
 import Navbar from '../components/Navbar';
 import {
   PencilIcon, CheckIcon, XMarkIcon, PhoneIcon, CalendarIcon,
-  ShieldCheckIcon, EyeIcon, EyeSlashIcon,
+  ShieldCheckIcon, EyeIcon, EyeSlashIcon, IdentificationIcon, DocumentArrowUpIcon,
 } from '@heroicons/react/24/outline';
 
 const AVATAR_COLORS = [
@@ -35,6 +35,11 @@ export default function Profile() {
   const [showPwd, setShowPwd] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdMsg, setPwdMsg] = useState(null);
+
+  // Vérification identité
+  const [idFile, setIdFile] = useState(null);
+  const [idLoading, setIdLoading] = useState(false);
+  const [idMsg, setIdMsg] = useState(null);
 
   // Delete account
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -86,6 +91,23 @@ export default function Profile() {
       setDeleting(false);
       setDeleteConfirm(false);
     }
+  };
+
+  const handleIdUpload = async () => {
+    if (!idFile) return;
+    setIdLoading(true); setIdMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('id_document', idFile);
+      await axios.post('/api/auth/verify-request', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setIdMsg({ ok: true, text: 'Document envoyé. Un administrateur va vérifier votre compte.' });
+      // Mettre à jour le user localement
+      login({ ...user, verify_requested: true }, localStorage.getItem('glh_token'));
+      setIdFile(null);
+    } catch (err) {
+      setIdMsg({ ok: false, text: err.response?.data?.error || 'Erreur lors de l\'envoi' });
+    }
+    setIdLoading(false);
   };
 
   if (!user) return null;
@@ -189,6 +211,57 @@ export default function Profile() {
               <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Réservations reçues</div>
             </div>
           </div>
+        </div>
+
+        {/* ── Vérification d'identité ──────────────────────────────────────── */}
+        <div className="bg-luxuryDark rounded-3xl border border-white/5 shadow-2xl p-8">
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
+            <IdentificationIcon className="h-6 w-6 text-gnYellow" />
+            <h2 className="font-display font-black text-xl text-white uppercase tracking-wider">Vérification du compte</h2>
+            {user.is_verified && (
+              <span className="ml-auto text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-gnGreen/15 text-gnGreen border border-gnGreen/20 flex items-center gap-1.5">
+                <CheckIcon className="h-3.5 w-3.5" /> Vérifié
+              </span>
+            )}
+          </div>
+
+          {user.is_verified ? (
+            <div className="flex items-center gap-3 text-sm text-gray-400">
+              <ShieldCheckIcon className="h-5 w-5 text-gnGreen flex-shrink-0" />
+              <span>Votre identité a été vérifiée. Vous pouvez soumettre des candidatures de location.</span>
+            </div>
+          ) : user.verify_requested ? (
+            <div className="flex items-center gap-3 text-sm text-gray-400">
+              <div className="w-2 h-2 rounded-full bg-gnYellow animate-pulse flex-shrink-0" />
+              <span>Votre demande de vérification est <span className="text-gnYellow font-bold">en cours d'examen</span>. Un administrateur va valider votre compte.</span>
+            </div>
+          ) : (
+            <div className="space-y-4 max-w-md">
+              <p className="text-sm text-gray-400">
+                Pour pouvoir candidater à une location, votre identité doit être vérifiée. Envoyez une photo de votre pièce d'identité (CNI, passeport…).
+              </p>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pièce d'identité (CNI, passeport)</label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={e => setIdFile(e.target.files[0])}
+                  className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-gnYellow/10 file:text-gnYellow hover:file:bg-gnYellow/20 file:transition-colors cursor-pointer"
+                />
+              </div>
+              {idMsg && (
+                <p className={`text-xs font-bold p-3 rounded-lg border ${idMsg.ok ? 'text-gnGreen bg-gnGreen/10 border-gnGreen/20' : 'text-gnRed bg-gnRed/10 border-gnRed/20'}`}>{idMsg.text}</p>
+              )}
+              <button
+                onClick={handleIdUpload}
+                disabled={!idFile || idLoading}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gnYellow text-luxuryBlack text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gnYellow/90 disabled:opacity-40 transition-all"
+              >
+                <DocumentArrowUpIcon className="h-4 w-4" />
+                {idLoading ? 'Envoi...' : 'Envoyer ma pièce d\'identité'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── Sécurité ─────────────────────────────────────────────────────── */}

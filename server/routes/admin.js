@@ -75,16 +75,36 @@ router.get('/users', authenticateAdmin, async (req, res) => {
 
 router.put('/users/:id', authenticateAdmin, async (req, res) => {
   try {
-    const { banned, is_admin } = req.body;
+    const { banned, is_admin, is_verified } = req.body;
     const fields = [];
     const params = [];
     let idx = 1;
-    if (banned    !== undefined) { fields.push(`banned   = $${idx++}`); params.push(banned); }
-    if (is_admin  !== undefined) { fields.push(`is_admin = $${idx++}`); params.push(is_admin); }
+    if (banned      !== undefined) { fields.push(`banned          = $${idx++}`); params.push(banned); }
+    if (is_admin    !== undefined) { fields.push(`is_admin        = $${idx++}`); params.push(is_admin); }
+    if (is_verified !== undefined) {
+      fields.push(`is_verified     = $${idx++}`);
+      fields.push(`verify_requested = FALSE`);
+      params.push(is_verified);
+    }
     if (!fields.length) return res.status(400).json({ error: 'Rien à mettre à jour' });
     params.push(parseInt(req.params.id));
     await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${idx}`, params);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// GET /api/admin/verify-requests — comptes en attente de vérification
+router.get('/verify-requests', authenticateAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, name, email, phone, id_document_url, created_at
+      FROM users
+      WHERE verify_requested = TRUE AND is_verified = FALSE
+      ORDER BY created_at ASC
+    `);
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }

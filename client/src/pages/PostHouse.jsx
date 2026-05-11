@@ -144,15 +144,12 @@ export default function PostHouse() {
   const [longitude, setLongitude] = useState(-13.5784);
 
   const [price, setPrice] = useState('');
-  const [minNights, setMinNights] = useState('');
-  const [maxNights, setMaxNights] = useState('');
-  const [discountWeekly, setDiscountWeekly] = useState('');
-  const [discountMonthly, setDiscountMonthly] = useState('');
+  const [cautionAmount, setCautionAmount] = useState('');
+  const [availableFrom, setAvailableFrom] = useState('');
   const [checkInTime, setCheckInTime] = useState('14:00');
   const [checkOutTime, setCheckOutTime] = useState('11:00');
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [extraRules, setExtraRules] = useState('');
-  const [cancellationPolicy, setCancellationPolicy] = useState('flexible');
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const fileRef = useRef(null);
@@ -176,14 +173,14 @@ export default function PostHouse() {
   const next = () => {
     if (step === 2 && !title.trim()) { setError('Le titre est obligatoire.'); return; }
     if (step === 2 && !city.trim()) { setError('La ville est obligatoire.'); return; }
-    if (step === 4 && !price) { setError('Le prix est obligatoire.'); return; }
+    if (step === 4 && !price) { setError('Le loyer mensuel est obligatoire.'); return; }
     setError('');
     setStep(s => s + 1);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!price) { setError('Le prix est obligatoire.'); return; }
+    if (!price) { setError('Le loyer mensuel est obligatoire.'); return; }
     if (!city.trim()) { setError('La ville est obligatoire.'); return; }
     setLoading(true); setError('');
     try {
@@ -191,19 +188,17 @@ export default function PostHouse() {
       fd.append('title', title); fd.append('description', description);
       fd.append('type', houseType); fd.append('rental_type', rentalType);
       fd.append('city', city); fd.append('neighborhood', neighborhood); fd.append('address', address);
-      fd.append('price_per_night', price); fd.append('bedrooms', bedrooms);
-      fd.append('beds', beds); fd.append('bathrooms', bathrooms); fd.append('max_guests', maxGuests);
+      fd.append('price_per_month', price);
+      fd.append('bedrooms', bedrooms);
+      fd.append('bathrooms', bathrooms); fd.append('max_guests', maxGuests);
       fd.append('pets_allowed', petsAllowed ? 'true' : 'false');
       fd.append('amenities', JSON.stringify(selectedAmenities));
-      if (minNights) fd.append('min_nights', minNights);
-      if (maxNights) fd.append('max_nights', maxNights);
-      if (discountWeekly) fd.append('discount_weekly', discountWeekly);
-      if (discountMonthly) fd.append('discount_monthly', discountMonthly);
+      if (cautionAmount) fd.append('caution_amount', cautionAmount);
+      if (availableFrom) fd.append('available_from', availableFrom);
       fd.append('check_in_time', checkInTime);
       fd.append('check_out_time', checkOutTime);
       fd.append('smoking_allowed', smokingAllowed ? 'true' : 'false');
       if (extraRules.trim()) fd.append('extra_rules', extraRules.trim());
-      fd.append('cancellation_policy', cancellationPolicy);
       fd.append('latitude', latitude);
       fd.append('longitude', longitude);
       images.forEach(img => fd.append('images', img));
@@ -463,110 +458,44 @@ export default function PostHouse() {
           {/* ── STEP 4 : Prix & Photos ── */}
           {step === 4 && (
             <>
+              {/* Loyer mensuel */}
               <div>
-                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">Prix par nuit *</label>
+                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">Loyer mensuel *</label>
                 <div className="relative">
-                  <input type="number" placeholder="500 000" value={price}
+                  <input type="number" placeholder="1 500 000" value={price}
                     onChange={e => setPrice(e.target.value)} className={INPUT + ' pr-14'} min={0} />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">GNF</span>
                 </div>
                 {price && (
                   <p className="text-gnYellow/60 text-xs mt-2 font-medium">
-                    {Number(price).toLocaleString('fr-FR')} GNF / nuit
+                    {Number(price).toLocaleString('fr-FR')} GNF / mois · charges comprises
                   </p>
                 )}
               </div>
 
+              {/* Caution */}
               <div>
                 <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">
-                  Durée de séjour <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
+                  Caution (dépôt de garantie) <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
                 </label>
-                <div className="flex gap-3 items-center">
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={minNights}
-                      onChange={e => setMinNights(e.target.value)}
-                      min={1}
-                      className={INPUT + ' pr-14'}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs">nuits</span>
-                  </div>
-                  <span className="text-gray-700 text-sm flex-shrink-0">→</span>
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={maxNights}
-                      onChange={e => setMaxNights(e.target.value)}
-                      min={minNights || 1}
-                      className={INPUT + ' pr-14'}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs">nuits</span>
-                  </div>
+                <div className="relative">
+                  <input type="number" placeholder="0" value={cautionAmount}
+                    onChange={e => setCautionAmount(e.target.value)} className={INPUT + ' pr-14'} min={0} />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">GNF</span>
                 </div>
+                <p className="text-gray-700 text-xs mt-1">Laissez vide si aucune caution n'est requise. Remboursée à la fin du bail.</p>
               </div>
 
+              {/* Date de disponibilité */}
               <div>
-                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-1">
-                  Remises long séjour <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
+                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-2">
+                  Disponible à partir du <span className="text-gray-700 normal-case font-normal">(optionnel)</span>
                 </label>
-                <p className="text-gray-700 text-xs mb-3">Offrez une réduction automatique pour les séjours longs.</p>
-                <div className="flex gap-3">
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={discountWeekly}
-                      onChange={e => setDiscountWeekly(e.target.value)}
-                      min={0} max={90}
-                      className={INPUT + ' pr-8'}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">%</span>
-                    <span className="block text-center text-[10px] text-gray-600 mt-1">7 nuits+</span>
-                  </div>
-                  <div className="flex-1 relative">
-                    <input
-                      type="number"
-                      placeholder="0"
-                      value={discountMonthly}
-                      onChange={e => setDiscountMonthly(e.target.value)}
-                      min={0} max={90}
-                      className={INPUT + ' pr-8'}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">%</span>
-                    <span className="block text-center text-[10px] text-gray-600 mt-1">28 nuits+</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-3">Politique d'annulation</label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'flexible', label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 24h avant l\'arrivée. La 1ère nuit est retenue après.' },
-                    { value: 'moderate', label: 'Modérée', desc: 'Annulation gratuite jusqu\'à 5 jours avant l\'arrivée. 50% retenu après.' },
-                    { value: 'strict',   label: 'Stricte',  desc: 'Annulation gratuite dans les 48h suivant la réservation (si arrivée à 14j+). Aucun remboursement ensuite.' },
-                  ].map(p => (
-                    <button key={p.value} type="button" onClick={() => setCancellationPolicy(p.value)}
-                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all ${
-                        cancellationPolicy === p.value
-                          ? 'border-gnYellow/50 bg-gnYellow/6'
-                          : 'border-transparent bg-white/4 hover:bg-white/7'
-                      }`}>
-                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                        cancellationPolicy === p.value ? 'border-gnYellow bg-gnYellow' : 'border-white/25'
-                      }`}>
-                        {cancellationPolicy === p.value && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className={`text-sm font-bold ${cancellationPolicy === p.value ? 'text-white' : 'text-gray-300'}`}>{p.label}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{p.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <input type="date" value={availableFrom}
+                  onChange={e => setAvailableFrom(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className={INPUT} />
+                <p className="text-gray-700 text-xs mt-1">Laissez vide si le logement est disponible immédiatement.</p>
               </div>
 
               <div>

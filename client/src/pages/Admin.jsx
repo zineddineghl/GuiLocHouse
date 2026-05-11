@@ -22,6 +22,7 @@ const TABS = [
   { id: 'users',    label: 'Utilisateurs' },
   { id: 'houses',   label: 'Annonces' },
   { id: 'bookings', label: 'Réservations' },
+  { id: 'verifications', label: 'Vérifications' },
 ];
 
 const STATUS_COLORS = {
@@ -588,6 +589,78 @@ function BookingsTab() {
   );
 }
 
+// ── VERIFICATIONS TAB ──────────────────────────────────────────────────────────
+function VerificationsTab() {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRequests = () => {
+    setLoading(true);
+    axios.get('/api/admin/verify-requests')
+      .then(r => setRequests(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { fetchRequests(); }, []);
+
+  const handleVerify = async (userId, approve) => {
+    await axios.put(`/api/admin/users/${userId}`, { is_verified: approve });
+    fetchRequests();
+  };
+
+  if (loading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gnYellow" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-gray-500 text-sm font-bold">{requests.length} demande{requests.length > 1 ? 's' : ''} en attente</p>
+      {requests.length === 0 && (
+        <div className="bg-[#111] border border-white/5 rounded-2xl p-12 text-center">
+          <CheckCircleIcon className="h-12 w-12 text-gnGreen mx-auto mb-3 opacity-50" />
+          <p className="text-gray-500 font-bold">Aucune demande de vérification en attente</p>
+        </div>
+      )}
+      {requests.map(u => (
+        <div key={u.id} className="bg-[#111] border border-white/5 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <div className="w-12 h-12 rounded-full bg-gnYellow/10 border border-gnYellow/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-gnYellow font-black text-lg">{u.name?.[0]?.toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-white">{u.name}</p>
+            <p className="text-xs text-gray-500">{u.email}</p>
+            {u.phone && <p className="text-xs text-gray-600">{u.phone}</p>}
+            <p className="text-[10px] text-gray-700 mt-1">Inscrit le {new Date(u.created_at).toLocaleDateString('fr-FR')}</p>
+          </div>
+          {u.id_document_url && (
+            <a
+              href={u.id_document_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnYellow border border-gnYellow/30 bg-gnYellow/5 hover:bg-gnYellow/10 rounded-xl transition-colors flex-shrink-0"
+            >
+              Voir le document
+            </a>
+          )}
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => handleVerify(u.id, true)}
+              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-gnGreen hover:bg-gnGreen/80 rounded-xl transition-colors"
+            >
+              <CheckCircleIcon className="h-4 w-4" /> Valider
+            </button>
+            <button
+              onClick={() => handleVerify(u.id, false)}
+              className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gnRed border border-gnRed/30 bg-gnRed/5 hover:bg-gnRed/10 rounded-xl transition-colors"
+            >
+              <XCircleIcon className="h-4 w-4" /> Refuser
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── MAIN ───────────────────────────────────────────────────────────────────────
 export default function Admin() {
   const { user } = useAuth();
@@ -637,10 +710,11 @@ export default function Admin() {
 
         {/* Content */}
         <div>
-          {activeTab === 'stats'    && <StatsTab />}
-          {activeTab === 'users'    && <UsersTab />}
-          {activeTab === 'houses'   && <HousesTab />}
-          {activeTab === 'bookings' && <BookingsTab />}
+          {activeTab === 'stats'         && <StatsTab />}
+          {activeTab === 'users'         && <UsersTab />}
+          {activeTab === 'houses'        && <HousesTab />}
+          {activeTab === 'bookings'      && <BookingsTab />}
+          {activeTab === 'verifications' && <VerificationsTab />}
         </div>
       </div>
     </div>
