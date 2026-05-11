@@ -146,6 +146,8 @@ export default function PostHouse() {
   const [price, setPrice] = useState('');
   const [cautionAmount, setCautionAmount] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
+  const [surfaceHouse, setSurfaceHouse] = useState('');
+  const [surfaceLand, setSurfaceLand] = useState('');
 
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [extraRules, setExtraRules] = useState('');
@@ -190,6 +192,8 @@ export default function PostHouse() {
       fd.append('price_per_month', price);
       fd.append('bedrooms', bedrooms);
       fd.append('bathrooms', bathrooms); fd.append('max_guests', maxGuests);
+      if (surfaceHouse) fd.append('surface_house', surfaceHouse);
+      if (surfaceLand) fd.append('surface_land', surfaceLand);
       fd.append('pets_allowed', petsAllowed ? 'true' : 'false');
       fd.append('amenities', JSON.stringify(selectedAmenities));
       if (cautionAmount) fd.append('caution_amount', cautionAmount);
@@ -366,6 +370,21 @@ export default function PostHouse() {
             <>
               <div className="bg-white/4 rounded-xl p-4 space-y-4">
                 <Stepper label="Chambres" value={bedrooms} onChange={setBedrooms} min={1} />
+                <div className="h-px bg-white/5" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Surface habitable (m²)</label>
+                    <input type="number" min="0" value={surfaceHouse} onChange={e => setSurfaceHouse(e.target.value)}
+                      placeholder="ex: 120"
+                      className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Surface terrain (m²)</label>
+                    <input type="number" min="0" value={surfaceLand} onChange={e => setSurfaceLand(e.target.value)}
+                      placeholder="ex: 500"
+                      className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40" />
+                  </div>
+                </div>
                 <div className="h-px bg-white/5" />
                 <Stepper label="Lits" value={beds} onChange={setBeds} min={1} />
                 <div className="h-px bg-white/5" />

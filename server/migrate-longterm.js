@@ -8,7 +8,9 @@ async function migrate() {
       ALTER TABLE houses
         ADD COLUMN IF NOT EXISTS price_per_month  INTEGER,
         ADD COLUMN IF NOT EXISTS caution_amount   INTEGER DEFAULT 0,
-        ADD COLUMN IF NOT EXISTS available_from   DATE
+        ADD COLUMN IF NOT EXISTS available_from   DATE,
+        ADD COLUMN IF NOT EXISTS surface_house    INTEGER,
+        ADD COLUMN IF NOT EXISTS surface_land     INTEGER
     `);
 
     // Copier l'ancien prix nuitée → prix mensuel pour les annonces existantes

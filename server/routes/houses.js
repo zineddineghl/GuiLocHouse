@@ -57,6 +57,7 @@ router.get('/', async (req, res) => {
              h.price_per_month, h.bedrooms, h.bathrooms, h.max_guests,
              h.images, h.amenities, h.pets_allowed, h.available, h.created_at,
              h.latitude, h.longitude, h.caution_amount, h.available_from,
+             h.surface_house, h.surface_land,
              h.check_in_time, h.check_out_time, h.smoking_allowed, h.extra_rules,
              u.name as owner_name, u.id as owner_id
       FROM houses h
@@ -166,6 +167,7 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
       title, description, type, rental_type, city, neighborhood, address,
       price_per_month, caution_amount, available_from,
       bedrooms, bathrooms, max_guests, pets_allowed, amenities,
+      surface_house, surface_land,
       check_in_time, check_out_time, smoking_allowed, extra_rules,
       latitude, longitude,
     } = req.body;
@@ -180,15 +182,16 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
         owner_id, title, description, type, rental_type, city, neighborhood, address,
         price_per_night, price_per_month, caution_amount, available_from,
         bedrooms, bathrooms, max_guests, pets_allowed, images, amenities,
+        surface_house, surface_land,
         check_in_time, check_out_time, smoking_allowed, extra_rules
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING *
     `, [
       req.user.id, title, description,
       type || 'apartment', rental_type || 'entire',
       city, neighborhood, address,
-      parseInt(price_per_month), // price_per_night gardé identique pour compatibilité
+      parseInt(price_per_month),
       parseInt(price_per_month),
       parseInt(caution_amount) || 0,
       available_from || null,
@@ -196,6 +199,8 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
       parseInt(max_guests) || 2,
       pets_allowed === 'true' ? 1 : 0,
       JSON.stringify(images), JSON.stringify(amenitiesArr),
+      parseInt(surface_house) || null,
+      parseInt(surface_land) || null,
       check_in_time || null,
       check_out_time || null,
       smoking_allowed === 'true',

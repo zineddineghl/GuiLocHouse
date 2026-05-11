@@ -214,6 +214,8 @@ export default function HouseDetail() {
                 <span className="flex items-center gap-2 text-sm text-gray-400"><HomeModernIcon className="h-4 w-4 text-gnYellow" />{house.bedrooms} chambre{house.bedrooms > 1 ? 's' : ''}</span>
                 <span className="flex items-center gap-2 text-sm text-gray-400"><HomeModernIcon className="h-4 w-4 text-gnYellow" />{house.bathrooms} salle{house.bathrooms > 1 ? 's' : ''} de bain</span>
                 <span className="flex items-center gap-2 text-sm text-gray-400"><UsersIcon className="h-4 w-4 text-gnYellow" />{house.max_guests} personnes max</span>
+                {house.surface_house && <span className="flex items-center gap-2 text-sm text-gray-400"><HomeModernIcon className="h-4 w-4 text-gnYellow" />{house.surface_house} m² habitable</span>}
+                {house.surface_land && <span className="flex items-center gap-2 text-sm text-gray-400"><HomeModernIcon className="h-4 w-4 text-gnYellow" />{house.surface_land} m² terrain</span>}
               </div>
               {house.description && (
                 <div className="mt-4">
