@@ -10,7 +10,8 @@ async function migrate() {
         ADD COLUMN IF NOT EXISTS caution_amount   INTEGER DEFAULT 0,
         ADD COLUMN IF NOT EXISTS available_from   DATE,
         ADD COLUMN IF NOT EXISTS surface_house    INTEGER,
-        ADD COLUMN IF NOT EXISTS surface_land     INTEGER
+        ADD COLUMN IF NOT EXISTS surface_land     INTEGER,
+        ADD COLUMN IF NOT EXISTS views_count      INTEGER DEFAULT 0
     `);
 
     // Copier l'ancien prix nuitée → prix mensuel pour les annonces existantes

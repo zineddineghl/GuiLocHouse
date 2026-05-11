@@ -317,7 +317,15 @@ export default function HouseDetail() {
                   <span className="text-gnYellow font-black text-lg">{house.owner_name?.[0]?.toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white">{house.owner_name}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-white">{house.owner_name}</p>
+                    {house.owner_is_verified && (
+                      <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gnGreen/15 text-gnGreen border border-gnGreen/20">
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Vérifié
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[10px] text-gnYellow font-bold uppercase tracking-wider mt-0.5">Propriétaire</p>
                   {house.owner_phone && (
                     <a href={'tel:' + house.owner_phone} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gnYellow mt-1">

@@ -96,11 +96,39 @@ router.get('/my', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, title, type, rental_type, city, neighborhood, price_per_month,
-              bedrooms, bathrooms, max_guests, images, available, created_at, available_from
+              bedrooms, bathrooms, max_guests, images, available, created_at, available_from,
+              COALESCE(views_count, 0) as views_count
        FROM houses WHERE owner_id = $1 ORDER BY created_at DESC`,
       [req.user.id]
     );
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// GET /api/houses/my/stats — stats par annonce (vues + réservations)
+router.get('/my/stats', authenticate, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT h.id, h.title, COALESCE(h.views_count, 0) as views_count,
+             COUNT(b.id)                                          as total_bookings,
+             COUNT(b.id) FILTER (WHERE b.status = 'confirmed')   as confirmed_bookings,
+             COUNT(b.id) FILTER (WHERE b.status = 'pending')     as pending_bookings
+      FROM houses h
+      LEFT JOIN bookings b ON b.house_id = h.id
+      WHERE h.owner_id = $1
+      GROUP BY h.id, h.title, h.views_count
+      ORDER BY h.created_at DESC
+    `, [req.user.id]);
+
+    const result = rows.map(r => ({
+      ...r,
+      conversion_rate: r.views_count > 0
+        ? ((r.confirmed_bookings / r.views_count) * 100).toFixed(1)
+        : '0.0',
+    }));
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -134,12 +162,15 @@ router.patch('/:id/toggle', authenticate, async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT h.*, u.name as owner_name, u.email as owner_email, u.phone as owner_phone, u.id as owner_id
+      SELECT h.*, u.name as owner_name, u.email as owner_email, u.phone as owner_phone,
+             u.id as owner_id, u.is_verified as owner_is_verified
       FROM houses h
       JOIN users u ON h.owner_id = u.id
       WHERE h.id = $1
     `, [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Annonce introuvable' });
+    // Incrémenter le compteur de vues (sans bloquer la réponse)
+    pool.query('UPDATE houses SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1', [req.params.id]).catch(() => {});
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
