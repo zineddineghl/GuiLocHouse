@@ -68,7 +68,13 @@ export default function HouseDetail() {
   useEffect(() => {
     if (house && (user?.id === house.owner_id || cohosts.some(c => c.id === user?.id))) {
       axios.get(`/api/houses/${id}/blocked-dates`)
-        .then(r => setBlockedDates(r.data))
+        .then(r => {
+          setBlockedDates(r.data);
+          setAvailRanges(prev => [
+            ...prev.filter(r => r.type !== 'blocked'),
+            ...r.data.map(b => ({ ...b, type: 'blocked' })),
+          ]);
+        })
         .catch(() => {});
     }
   }, [house, user, cohosts]);

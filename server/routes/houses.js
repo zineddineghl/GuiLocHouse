@@ -234,6 +234,21 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/houses/:id/availability — public: bookings confirmés + dates bloquées
+router.get('/:id/availability', async (req, res) => {
+  try {
+    const { rows: bookings } = await pool.query(
+      `SELECT start_date, end_date, 'booked' as type FROM bookings WHERE house_id = $1 AND status = 'confirmed'`,
+      [req.params.id]
+    );
+    const { rows: blocked } = await pool.query(
+      `SELECT start_date, end_date, 'blocked' as type FROM house_blocked_dates WHERE house_id = $1`,
+      [req.params.id]
+    );
+    res.json({ ranges: [...bookings, ...blocked] });
+  } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
+});
+
 // GET /api/houses/:id/blocked-dates — pour le propriétaire
 router.get('/:id/blocked-dates', authenticate, async (req, res) => {
   try {
