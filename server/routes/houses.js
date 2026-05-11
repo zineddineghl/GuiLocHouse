@@ -106,12 +106,22 @@ router.get('/my', authenticate, async (req, res) => {
   }
 });
 
+// Helper — propriétaire OU co-hôte
+async function isOwnerOrCohost(houseId, userId) {
+  const { rows } = await pool.query(`
+    SELECT 1 FROM houses WHERE id = $1 AND owner_id = $2
+    UNION
+    SELECT 1 FROM house_cohosts WHERE house_id = $1 AND user_id = $2
+  `, [houseId, userId]);
+  return rows.length > 0;
+}
+
 // PATCH /api/houses/:id/toggle
 router.patch('/:id/toggle', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM houses WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Annonce introuvable' });
-    if (rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (!(await isOwnerOrCohost(req.params.id, req.user.id))) return res.status(403).json({ error: 'Accès refusé' });
     const newAvailable = rows[0].available ? 0 : 1;
     await pool.query('UPDATE houses SET available = $1 WHERE id = $2', [newAvailable, req.params.id]);
     res.json({ available: newAvailable });
@@ -256,8 +266,7 @@ router.get('/:id/blocked-dates', authenticate, async (req, res) => {
 // POST /api/houses/:id/blocked-dates
 router.post('/:id/blocked-dates', authenticate, async (req, res) => {
   try {
-    const house = await pool.query('SELECT owner_id FROM houses WHERE id = $1', [req.params.id]);
-    if (!house.rows[0] || house.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (!(await isOwnerOrCohost(req.params.id, req.user.id))) return res.status(403).json({ error: 'Accès refusé' });
     const { start_date, end_date } = req.body;
     const { rows } = await pool.query('INSERT INTO house_blocked_dates (house_id, start_date, end_date) VALUES ($1,$2,$3) RETURNING *', [req.params.id, start_date, end_date]);
     res.json(rows[0]);
@@ -267,9 +276,54 @@ router.post('/:id/blocked-dates', authenticate, async (req, res) => {
 // DELETE /api/houses/:id/blocked-dates/:blockId
 router.delete('/:id/blocked-dates/:blockId', authenticate, async (req, res) => {
   try {
-    const house = await pool.query('SELECT owner_id FROM houses WHERE id = $1', [req.params.id]);
-    if (!house.rows[0] || house.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Accès refusé' });
+    if (!(await isOwnerOrCohost(req.params.id, req.user.id))) return res.status(403).json({ error: 'Accès refusé' });
     await pool.query('DELETE FROM house_blocked_dates WHERE id = $1 AND house_id = $2', [req.params.blockId, req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
+});
+
+// GET /api/houses/:id/cohosts
+router.get('/:id/cohosts', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT u.id, u.name, u.email FROM house_cohosts hc
+      JOIN users u ON hc.user_id = u.id
+      WHERE hc.house_id = $1
+      ORDER BY hc.created_at
+    `, [req.params.id]);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
+});
+
+// POST /api/houses/:id/cohosts  { email }
+router.post('/:id/cohosts', authenticate, async (req, res) => {
+  try {
+    const house = await pool.query('SELECT owner_id FROM houses WHERE id = $1', [req.params.id]);
+    if (!house.rows[0]) return res.status(404).json({ error: 'Annonce introuvable' });
+    if (house.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Seul le propriétaire peut ajouter un co-hôte' });
+
+    const { email } = req.body;
+    const userResult = await pool.query('SELECT id, name, email FROM users WHERE email = $1', [email]);
+    if (!userResult.rows[0]) return res.status(404).json({ error: 'Aucun compte trouvé avec cet email' });
+
+    const cohost = userResult.rows[0];
+    if (cohost.id === req.user.id) return res.status(400).json({ error: 'Vous ne pouvez pas vous ajouter vous-même' });
+
+    await pool.query(
+      'INSERT INTO house_cohosts (house_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [req.params.id, cohost.id]
+    );
+    res.json({ id: cohost.id, name: cohost.name, email: cohost.email });
+  } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
+});
+
+// DELETE /api/houses/:id/cohosts/:userId
+router.delete('/:id/cohosts/:userId', authenticate, async (req, res) => {
+  try {
+    const house = await pool.query('SELECT owner_id FROM houses WHERE id = $1', [req.params.id]);
+    if (!house.rows[0]) return res.status(404).json({ error: 'Annonce introuvable' });
+    if (house.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Seul le propriétaire peut retirer un co-hôte' });
+    await pool.query('DELETE FROM house_cohosts WHERE house_id = $1 AND user_id = $2', [req.params.id, req.params.userId]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Erreur serveur' }); }
 });

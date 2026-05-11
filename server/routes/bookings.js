@@ -80,9 +80,19 @@ router.put('/:id/status', authenticate, async (req, res) => {
     const isOwner = booking.owner_id === req.user.id;
     const isRenter = booking.renter_id === req.user.id;
 
-    if (!isOwner && !isRenter) return res.status(403).json({ error: 'Accès refusé' });
+    // Co-hôtes peuvent aussi confirmer/rejeter
+    let isCohost = false;
+    if (!isOwner && ['confirmed', 'rejected'].includes(status)) {
+      const { rows: ch } = await pool.query(
+        'SELECT 1 FROM house_cohosts WHERE house_id = $1 AND user_id = $2',
+        [booking.house_id, req.user.id]
+      );
+      isCohost = ch.length > 0;
+    }
+
+    if (!isOwner && !isRenter && !isCohost) return res.status(403).json({ error: 'Accès refusé' });
     if (status === 'cancelled' && !isRenter) return res.status(403).json({ error: 'Seul le locataire peut annuler' });
-    if (['confirmed', 'rejected'].includes(status) && !isOwner) return res.status(403).json({ error: 'Seul le propriétaire peut confirmer/rejeter' });
+    if (['confirmed', 'rejected'].includes(status) && !isOwner && !isCohost) return res.status(403).json({ error: 'Seul le propriétaire peut confirmer/rejeter' });
 
     const { rows: updated } = await pool.query('UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *', [status, req.params.id]);
     res.json(updated[0]);

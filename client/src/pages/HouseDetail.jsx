@@ -49,6 +49,11 @@ export default function HouseDetail() {
   const [blockForm, setBlockForm] = useState({ start_date: '', end_date: '' });
   const [blockLoading, setBlockLoading] = useState(false);
 
+  const [cohosts, setCohosts] = useState([]);
+  const [cohostEmail, setCohostEmail] = useState('');
+  const [cohostLoading, setCohostLoading] = useState(false);
+  const [cohostError, setCohostError] = useState('');
+
   useEffect(() => {
     axios.get('/api/houses/' + id)
       .then(r => setHouse(r.data))
@@ -57,15 +62,18 @@ export default function HouseDetail() {
     axios.get(`/api/houses/${id}/availability`)
       .then(r => setAvailRanges(r.data.ranges || []))
       .catch(() => {});
+    axios.get(`/api/houses/${id}/cohosts`)
+      .then(r => setCohosts(r.data))
+      .catch(() => {});
   }, [id]);
 
   useEffect(() => {
-    if (house && user?.id === house.owner_id) {
+    if (house && (user?.id === house.owner_id || cohosts.some(c => c.id === user?.id))) {
       axios.get(`/api/houses/${id}/blocked-dates`)
         .then(r => setBlockedDates(r.data))
         .catch(() => {});
     }
-  }, [house, user]);
+  }, [house, user, cohosts]);
 
   const handleBlockSubmit = async (e) => {
     e.preventDefault();
@@ -96,6 +104,25 @@ export default function HouseDetail() {
 
   const images = Array.isArray(house.images) ? house.images : JSON.parse(house.images || '[]');
   const isOwner = user?.id === house.owner_id;
+  const isCohost = cohosts.some(c => c.id === user?.id);
+
+  const handleAddCohost = async (e) => {
+    e.preventDefault();
+    if (!cohostEmail.trim()) return;
+    setCohostLoading(true); setCohostError('');
+    try {
+      const { data } = await axios.post(`/api/houses/${id}/cohosts`, { email: cohostEmail.trim() });
+      setCohosts(prev => [...prev, data]);
+      setCohostEmail('');
+    } catch (err) {
+      setCohostError(err.response?.data?.error || 'Erreur');
+    } finally { setCohostLoading(false); }
+  };
+
+  const handleRemoveCohost = async (userId) => {
+    await axios.delete(`/api/houses/${id}/cohosts/${userId}`);
+    setCohosts(prev => prev.filter(c => c.id !== userId));
+  };
   const nights = startDate && endDate ? Math.max(0, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000)) : 0;
   const discountPct = nights >= 28 ? (house.discount_monthly || 0) : nights >= 7 ? (house.discount_weekly || 0) : 0;
   const pricePerNight = Math.round(house.price_per_night * (1 - discountPct / 100));
@@ -227,8 +254,8 @@ export default function HouseDetail() {
               <AvailabilityCalendar bookedRanges={availRanges} />
             </div>
 
-            {/* Owner: block dates */}
-            {isOwner && (
+            {/* Owner / co-hôte : block dates */}
+            {(isOwner || isCohost) && (
               <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
                 <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <LockClosedIcon className="h-3.5 w-3.5" /> Bloquer des dates
@@ -277,23 +304,72 @@ export default function HouseDetail() {
             </div>
 
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
-              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Proprietaire</h3>
+              <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">
+                Propriétaire{cohosts.length > 0 ? ' & Co-hôtes' : ''}
+              </h3>
+
+              {/* Propriétaire */}
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gnYellow/10 border border-gnYellow/20 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-gnYellow/10 border border-gnYellow/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-gnYellow font-black text-lg">{house.owner_name?.[0]?.toUpperCase()}</span>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="font-bold text-white">{house.owner_name}</p>
+                  <p className="text-[10px] text-gnYellow font-bold uppercase tracking-wider mt-0.5">Propriétaire</p>
                   {house.owner_phone && (
                     <a href={'tel:' + house.owner_phone} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gnYellow mt-1">
                       <PhoneIcon className="h-3.5 w-3.5" />{house.owner_phone}
                     </a>
                   )}
                 </div>
-                {!isOwner && user && (
+                {!isOwner && !isCohost && user && (
                   <ContactButton houseId={house.id} navigate={navigate} />
                 )}
               </div>
+
+              {/* Co-hôtes */}
+              {cohosts.length > 0 && (
+                <div className="mt-4 space-y-3 pt-4 border-t border-white/5">
+                  {cohosts.map(c => (
+                    <div key={c.id} className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-gray-300 font-bold text-sm">{c.name?.[0]?.toUpperCase()}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-200">{c.name}</p>
+                        <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider">Co-hôte</p>
+                      </div>
+                      {isOwner && (
+                        <button onClick={() => handleRemoveCohost(c.id)}
+                          className="text-gray-700 hover:text-red-400 transition-colors">
+                          <TrashIcon className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Panel ajout co-hôte (owner uniquement) */}
+              {isOwner && (
+                <form onSubmit={handleAddCohost} className="mt-4 pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-2">Ajouter un co-hôte</p>
+                  {cohostError && <p className="text-red-400 text-xs mb-2">{cohostError}</p>}
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      placeholder="email@exemple.com"
+                      value={cohostEmail}
+                      onChange={e => setCohostEmail(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-white/5 border border-white/5 rounded-xl text-white text-xs placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-gnYellow/30"
+                    />
+                    <button type="submit" disabled={cohostLoading}
+                      className="px-3 py-2 bg-gnYellow/10 border border-gnYellow/20 text-gnYellow text-xs font-black rounded-xl hover:bg-gnYellow/20 transition-colors disabled:opacity-50">
+                      {cohostLoading ? '...' : 'Ajouter'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
 
@@ -303,8 +379,8 @@ export default function HouseDetail() {
                 <span className="text-gnYellow font-black text-2xl">{Number(house.price_per_night).toLocaleString()}</span>
                 <span className="text-gray-500 text-sm font-bold">GNF / nuit</span>
               </div>
-              {isOwner ? (
-                <p className="text-center text-gray-500 text-sm font-bold py-4">Votre annonce</p>
+              {(isOwner || isCohost) ? (
+                <p className="text-center text-gray-500 text-sm font-bold py-4">{isOwner ? 'Votre annonce' : 'Vous êtes co-hôte'}</p>
               ) : bookingSuccess ? (
                 <div className="text-center py-4">
                   <CalendarDaysIcon className="h-12 w-12 text-gnGreen mx-auto mb-3" />
