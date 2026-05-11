@@ -251,7 +251,7 @@ export default function HouseDetail() {
 
             {/* Availability calendar */}
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
-              <AvailabilityCalendar bookedRanges={availRanges} />
+              <AvailabilityCalendar bookedRanges={availRanges} availableFrom={house.available_from} />
             </div>
 
             {/* Owner / co-hôte : block dates */}

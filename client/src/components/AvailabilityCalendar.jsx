@@ -9,13 +9,15 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const DAY_LABELS = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
 
-function MonthGrid({ viewDate, bookedRanges }) {
+function MonthGrid({ viewDate, bookedRanges, availableFrom }) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
+  const availFrom = availableFrom ? new Date(availableFrom + 'T00:00:00') : null;
   const calStart = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 1 });
   const calEnd = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: calStart, end: calEnd });
 
   const getStatus = (date) => {
+    if (availFrom && isBefore(date, availFrom)) return 'blocked';
     for (const r of bookedRanges) {
       const s = new Date(r.start_date + 'T00:00:00');
       const e = new Date(r.end_date + 'T00:00:00');
@@ -66,7 +68,7 @@ function MonthGrid({ viewDate, bookedRanges }) {
   );
 }
 
-export default function AvailabilityCalendar({ bookedRanges = [] }) {
+export default function AvailabilityCalendar({ bookedRanges = [], availableFrom }) {
   const [startMonth, setStartMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const today = new Date(); today.setDate(1); today.setHours(0, 0, 0, 0);
 
@@ -88,9 +90,9 @@ export default function AvailabilityCalendar({ bookedRanges = [] }) {
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
-        <MonthGrid viewDate={startMonth} bookedRanges={bookedRanges} />
+        <MonthGrid viewDate={startMonth} bookedRanges={bookedRanges} availableFrom={availableFrom} />
         <div className="hidden md:block w-px bg-white/5 self-stretch" />
-        <MonthGrid viewDate={addMonths(startMonth, 1)} bookedRanges={bookedRanges} />
+        <MonthGrid viewDate={addMonths(startMonth, 1)} bookedRanges={bookedRanges} availableFrom={availableFrom} />
       </div>
 
       <div className="flex items-center gap-5 mt-6 pt-5 border-t border-white/5 flex-wrap">
