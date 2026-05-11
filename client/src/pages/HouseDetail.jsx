@@ -360,6 +360,20 @@ export default function HouseDetail() {
                       </div>
                     </div>
                   )}
+                  {house.cancellation_policy && (() => {
+                    const policies = {
+                      flexible: { label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 24h avant l\'arrivée.' },
+                      moderate: { label: 'Modérée',  desc: 'Annulation gratuite jusqu\'à 5 jours avant l\'arrivée.' },
+                      strict:   { label: 'Stricte',  desc: 'Annulation gratuite dans les 48h suivant la réservation.' },
+                    };
+                    const p = policies[house.cancellation_policy];
+                    return p ? (
+                      <div className="flex items-start gap-2 text-xs text-gray-500 border-t border-white/5 pt-3">
+                        <span className="text-gnYellow font-black flex-shrink-0">!</span>
+                        <span><span className="text-gray-300 font-bold">Politique {p.label}</span> — {p.desc}</span>
+                      </div>
+                    ) : null;
+                  })()}
                   <button type="submit" disabled={bookingLoading} className="btn-primary w-full">
                     {!user ? 'Se connecter pour reserver' : bookingLoading ? 'Envoi...' : 'Envoyer la demande'}
                   </button>

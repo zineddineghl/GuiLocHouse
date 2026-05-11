@@ -152,6 +152,7 @@ export default function PostHouse() {
   const [checkOutTime, setCheckOutTime] = useState('11:00');
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [extraRules, setExtraRules] = useState('');
+  const [cancellationPolicy, setCancellationPolicy] = useState('flexible');
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
   const fileRef = useRef(null);
@@ -202,6 +203,7 @@ export default function PostHouse() {
       fd.append('check_out_time', checkOutTime);
       fd.append('smoking_allowed', smokingAllowed ? 'true' : 'false');
       if (extraRules.trim()) fd.append('extra_rules', extraRules.trim());
+      fd.append('cancellation_policy', cancellationPolicy);
       fd.append('latitude', latitude);
       fd.append('longitude', longitude);
       images.forEach(img => fd.append('images', img));
@@ -536,6 +538,34 @@ export default function PostHouse() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gnYellow font-black text-xs">%</span>
                     <span className="block text-center text-[10px] text-gray-600 mt-1">28 nuits+</span>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 font-semibold uppercase tracking-widest block mb-3">Politique d'annulation</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'flexible', label: 'Flexible', desc: 'Annulation gratuite jusqu\'à 24h avant l\'arrivée. La 1ère nuit est retenue après.' },
+                    { value: 'moderate', label: 'Modérée', desc: 'Annulation gratuite jusqu\'à 5 jours avant l\'arrivée. 50% retenu après.' },
+                    { value: 'strict',   label: 'Stricte',  desc: 'Annulation gratuite dans les 48h suivant la réservation (si arrivée à 14j+). Aucun remboursement ensuite.' },
+                  ].map(p => (
+                    <button key={p.value} type="button" onClick={() => setCancellationPolicy(p.value)}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all ${
+                        cancellationPolicy === p.value
+                          ? 'border-gnYellow/50 bg-gnYellow/6'
+                          : 'border-transparent bg-white/4 hover:bg-white/7'
+                      }`}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        cancellationPolicy === p.value ? 'border-gnYellow bg-gnYellow' : 'border-white/25'
+                      }`}>
+                        {cancellationPolicy === p.value && <div className="w-1.5 h-1.5 rounded-full bg-black" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-bold ${cancellationPolicy === p.value ? 'text-white' : 'text-gray-300'}`}>{p.label}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{p.desc}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
 
