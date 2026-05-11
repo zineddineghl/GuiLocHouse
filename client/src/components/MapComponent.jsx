@@ -114,7 +114,7 @@ export default function MapComponent({ houses, hoveredId, onHoverChange, onSearc
               <Marker
                 key={house.id}
                 position={[parseFloat(house.latitude), parseFloat(house.longitude)]}
-                icon={createPriceIcon(house.price_per_night, isActive)}
+                icon={createPriceIcon(house.price_per_month || house.price_per_night, isActive)}
                 zIndexOffset={isActive ? 1000 : 0}
                 eventHandlers={{
                   mouseover: () => onHoverChange(house.id),
@@ -168,8 +168,8 @@ function HousePopup({ house }) {
           {house.neighborhood ? `${house.neighborhood}, ` : ''}{house.city}
         </p>
         <p className="text-gray-900 font-black text-sm mt-1.5">
-          {Number(house.price_per_night).toLocaleString()} GNF
-          <span className="text-gray-400 font-normal text-[10px]"> / nuit</span>
+          {Number(house.price_per_month || house.price_per_night).toLocaleString()} GNF
+          <span className="text-gray-400 font-normal text-[10px]"> / mois</span>
         </p>
       </div>
     </Link>

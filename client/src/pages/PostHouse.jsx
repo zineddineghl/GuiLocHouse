@@ -146,8 +146,7 @@ export default function PostHouse() {
   const [price, setPrice] = useState('');
   const [cautionAmount, setCautionAmount] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
-  const [checkInTime, setCheckInTime] = useState('14:00');
-  const [checkOutTime, setCheckOutTime] = useState('11:00');
+
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [extraRules, setExtraRules] = useState('');
   const [images, setImages] = useState([]);
@@ -195,8 +194,7 @@ export default function PostHouse() {
       fd.append('amenities', JSON.stringify(selectedAmenities));
       if (cautionAmount) fd.append('caution_amount', cautionAmount);
       if (availableFrom) fd.append('available_from', availableFrom);
-      fd.append('check_in_time', checkInTime);
-      fd.append('check_out_time', checkOutTime);
+
       fd.append('smoking_allowed', smokingAllowed ? 'true' : 'false');
       if (extraRules.trim()) fd.append('extra_rules', extraRules.trim());
       fd.append('latitude', latitude);
@@ -407,26 +405,6 @@ export default function PostHouse() {
               <div>
                 <p className="text-xs text-gray-500 font-semibold uppercase tracking-widest mb-3">Règles de la maison</p>
                 <div className="bg-white/4 rounded-xl p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Arrivée à partir de</label>
-                      <select value={checkInTime} onChange={e => setCheckInTime(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40">
-                        {['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'].map(t => (
-                          <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5">Départ avant</label>
-                      <select value={checkOutTime} onChange={e => setCheckOutTime(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white/5 border border-transparent rounded-xl text-white text-sm focus:outline-none focus:ring-1 focus:ring-gnYellow/40">
-                        {['08:00','09:00','10:00','11:00','12:00','13:00','14:00'].map(t => (
-                          <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
                   <div className="h-px bg-white/5" />
                   <div className="flex items-center justify-between">
                     <div>

@@ -89,8 +89,8 @@ function HouseCard({ house, favIds, onFavorite, onHover }) {
         </p>
         <div className="flex items-end justify-between">
           <div>
-            <span className="text-gnYellow font-black text-base">{Number(house.price_per_night).toLocaleString()}</span>
-            <span className="text-gray-500 text-[11px] font-bold"> GNF / nuit</span>
+            <span className="text-gnYellow font-black text-base">{Number(house.price_per_month || house.price_per_night).toLocaleString()}</span>
+            <span className="text-gray-500 text-[11px] font-bold"> GNF / mois</span>
           </div>
           <span className="text-[9px] text-gray-600 font-bold uppercase tracking-wider border border-white/10 rounded-lg px-2 py-0.5 group-hover:border-gnYellow/30 group-hover:text-gnYellow/60 transition-colors">
             Voir
@@ -153,8 +153,7 @@ export default function Houses() {
 
   const [city, setCity] = useState(searchParams.get('city') || '');
   const [neighborhood, setNeighborhood] = useState('');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+
   const [rentalType, setRentalType] = useState('');
 
   const [showGuests, setShowGuests] = useState(false);
@@ -188,8 +187,7 @@ export default function Houses() {
       if (city) params.city = city;
       if (neighborhood) params.neighborhood = neighborhood;
       if (rentalType) params.rental_type = rentalType;
-      if (checkIn) params.check_in = checkIn;
-      if (checkOut) params.check_out = checkOut;
+
       if (totalGuests > 1) params.guests = totalGuests;
       if (minPrice) params.min_price = minPrice;
       if (maxPrice) params.max_price = maxPrice;
@@ -245,7 +243,7 @@ export default function Houses() {
 
   const handleSearchBounds = useCallback((bounds) => {
     fetchHouses(1, bounds);
-  }, [city, neighborhood, rentalType, checkIn, checkOut, totalGuests, minPrice, maxPrice, bedrooms, beds, petsAllowed, selectedAmenities]);
+  }, [city, neighborhood, rentalType, totalGuests, minPrice, maxPrice, bedrooms, beds, petsAllowed, selectedAmenities]);
 
   const toggleAmenity = (key) => {
     setSelectedAmenities(prev =>
@@ -289,21 +287,6 @@ export default function Houses() {
                   className="bg-transparent text-white text-xs placeholder-gray-600 focus:outline-none" />
               </div>
 
-              {/* Arrivée */}
-              <div className="flex-1 min-w-[110px] px-3 py-2 flex flex-col gap-1 border-r border-white/5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">Arrivée</label>
-                <input type="date" min={today} value={checkIn}
-                  onChange={e => { setCheckIn(e.target.value); if (checkOut && e.target.value >= checkOut) setCheckOut(''); }}
-                  className="bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]" />
-              </div>
-
-              {/* Départ */}
-              <div className="flex-1 min-w-[110px] px-3 py-2 flex flex-col gap-1 border-r border-white/5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-gray-500">Départ</label>
-                <input type="date" min={checkIn || today} value={checkOut}
-                  onChange={e => setCheckOut(e.target.value)}
-                  className="bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]" />
-              </div>
 
               {/* Voyageurs */}
               <div className="flex-1 min-w-[120px] relative" ref={guestsRef}>
@@ -384,7 +367,7 @@ export default function Houses() {
               <div className="bg-luxuryDark border border-white/8 rounded-2xl p-4 mt-2 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">Prix / nuit (GNF)</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-2">Prix / mois (GNF)</p>
                     <div className="flex gap-2">
                       <input type="number" placeholder="Min" value={minPrice} onChange={e => setMinPrice(e.target.value)} className={INPUT} />
                       <input type="number" placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} className={INPUT} />
