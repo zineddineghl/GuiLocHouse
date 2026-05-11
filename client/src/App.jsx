@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import Houses from './pages/Houses';
 import HouseDetail from './pages/HouseDetail';
 import PostHouse from './pages/PostHouse';
+import EditHouse from './pages/EditHouse';
 import Profile from './pages/Profile';
 import MyBookings from './pages/MyBookings';
 import MyHouses from './pages/MyHouses';
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="/houses" element={<Houses />} />
         <Route path="/houses/:id" element={<HouseDetail />} />
         <Route path="/post-house" element={<PostHouse />} />
+        <Route path="/houses/:id/edit" element={<EditHouse />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/bookings" element={<MyBookings />} />
         <Route path="/my-houses" element={<MyHouses />} />

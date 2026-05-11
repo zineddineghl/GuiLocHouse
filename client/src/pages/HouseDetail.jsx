@@ -384,7 +384,15 @@ export default function HouseDetail() {
               </div>
               <p className="text-gray-600 text-xs mb-5">Charges comprises · Paiement direct</p>
               {(isOwner || isCohost) ? (
-                <p className="text-center text-gray-500 text-sm font-bold py-4">{isOwner ? 'Votre annonce' : 'Vous êtes co-hôte'}</p>
+                <div className="space-y-2">
+                  {isOwner && (
+                    <Link to={`/houses/${house.id}/edit`}
+                      className="flex items-center justify-center w-full py-3 rounded-xl bg-gnYellow text-luxuryBlack font-black text-xs uppercase tracking-widest hover:bg-gnYellow/90 transition-colors">
+                      Modifier l'annonce
+                    </Link>
+                  )}
+                  <p className="text-center text-gray-600 text-xs py-1">{isOwner ? 'Votre annonce' : 'Vous êtes co-hôte'}</p>
+                </div>
               ) : bookingSuccess ? (
                 <div className="text-center py-4">
                   <CalendarDaysIcon className="h-12 w-12 text-gnGreen mx-auto mb-3" />

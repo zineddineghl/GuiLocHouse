@@ -226,6 +226,67 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
   }
 });
 
+// PUT /api/houses/:id — modifier une annonce
+router.put('/:id', authenticate, upload.array('images', 10), async (req, res) => {
+  try {
+    const { rows: existing } = await pool.query('SELECT * FROM houses WHERE id = $1', [req.params.id]);
+    if (!existing[0]) return res.status(404).json({ error: 'Annonce introuvable' });
+    if (existing[0].owner_id !== req.user.id && !req.user.is_admin) return res.status(403).json({ error: 'Accès refusé' });
+
+    const {
+      title, description, type, rental_type, city, neighborhood, address,
+      price_per_month, caution_amount, available_from,
+      bedrooms, bathrooms, max_guests, pets_allowed, amenities,
+      surface_house, surface_land,
+      smoking_allowed, extra_rules,
+      latitude, longitude,
+      existing_images,
+    } = req.body;
+
+    // Fusionner les images existantes conservées + nouvelles uploadées
+    const keptImages = existing_images ? JSON.parse(existing_images) : [];
+    const newImages = (req.files || []).map(f => f.path);
+    const allImages = [...keptImages, ...newImages];
+
+    const amenitiesArr = amenities ? JSON.parse(amenities) : [];
+
+    const { rows } = await pool.query(`
+      UPDATE houses SET
+        title=$1, description=$2, type=$3, rental_type=$4,
+        city=$5, neighborhood=$6, address=$7,
+        price_per_night=$8, price_per_month=$8,
+        caution_amount=$9, available_from=$10,
+        bedrooms=$11, bathrooms=$12, max_guests=$13,
+        pets_allowed=$14, images=$15, amenities=$16,
+        surface_house=$17, surface_land=$18,
+        smoking_allowed=$19, extra_rules=$20,
+        latitude=$21, longitude=$22
+      WHERE id=$23
+      RETURNING *
+    `, [
+      title, description, type || 'apartment', rental_type || 'entire',
+      city, neighborhood || null, address || null,
+      parseInt(price_per_month),
+      parseInt(caution_amount) || 0,
+      available_from || null,
+      parseInt(bedrooms) || 1, parseInt(bathrooms) || 1, parseInt(max_guests) || 2,
+      pets_allowed === 'true' ? 1 : 0,
+      JSON.stringify(allImages), JSON.stringify(amenitiesArr),
+      parseInt(surface_house) || null, parseInt(surface_land) || null,
+      smoking_allowed === 'true',
+      extra_rules || null,
+      parseFloat(latitude) || existing[0].latitude,
+      parseFloat(longitude) || existing[0].longitude,
+      req.params.id,
+    ]);
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 // DELETE /api/houses/:id
 router.delete('/:id', authenticate, async (req, res) => {
   try {
