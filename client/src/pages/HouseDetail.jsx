@@ -431,18 +431,31 @@ export default function HouseDetail() {
                   {/* Durée */}
                   <div>
                     <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-1.5">
-                      Durée du bail — {durationMonths} mois
+                      Durée du bail
                     </label>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="number"
+                        min={1}
+                        value={durationMonths}
+                        onChange={e => {
+                          const v = parseInt(e.target.value);
+                          if (!isNaN(v) && v >= 1) setDurationMonths(v);
+                        }}
+                        className="w-20 bg-[#1a1a1a] border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white text-center focus:outline-none focus:border-gnYellow"
+                      />
+                      <span className="text-sm text-gray-400">mois</span>
+                    </div>
                     <input
                       type="range"
-                      min={1} max={24} step={1}
-                      value={durationMonths}
+                      min={1} max={120} step={1}
+                      value={Math.min(durationMonths, 120)}
                       onChange={e => setDurationMonths(parseInt(e.target.value))}
                       className="w-full accent-gnYellow"
                     />
                     <div className="flex justify-between text-[10px] text-gray-600 mt-1">
                       <span>1 mois</span>
-                      <span>24 mois</span>
+                      <span>10 ans +</span>
                     </div>
                     {startDate && estimatedEndDate && (
                       <p className="text-xs text-gray-500 mt-2 text-center">

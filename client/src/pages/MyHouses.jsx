@@ -26,15 +26,17 @@ export default function MyHouses() {
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    Promise.all([
+    Promise.allSettled([
       axios.get('/api/houses/my'),
       axios.get('/api/houses/my/stats'),
     ]).then(([r1, r2]) => {
-      setListings(r1.data);
-      const map = {};
-      r2.data.forEach(s => { map[s.id] = s; });
-      setStats(map);
-    }).catch(() => {}).finally(() => setLoading(false));
+      if (r1.status === 'fulfilled') setListings(r1.value.data);
+      if (r2.status === 'fulfilled') {
+        const map = {};
+        r2.value.data.forEach(s => { map[s.id] = s; });
+        setStats(map);
+      }
+    }).finally(() => setLoading(false));
   }, [user]);
 
   const handleToggle = async (id, available) => {
