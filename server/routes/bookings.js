@@ -81,9 +81,11 @@ router.get('/my', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT b.*, h.title as house_title, h.city, h.images, h.price_per_month,
+             u.name as owner_name, u.phone as owner_phone,
              lc.id as contract_id
       FROM bookings b
       JOIN houses h ON b.house_id = h.id
+      JOIN users u ON h.owner_id = u.id
       LEFT JOIN lease_contracts lc ON lc.booking_id = b.id
       WHERE b.renter_id = $1
       ORDER BY b.created_at DESC

@@ -34,6 +34,7 @@ export default function HouseDetail() {
   const [house, setHouse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imgIdx, setImgIdx] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [durationMonths, setDurationMonths] = useState(1);
   const [guests, setGuests] = useState(1);
@@ -51,6 +52,17 @@ export default function HouseDetail() {
   const [cohostEmail, setCohostEmail] = useState('');
   const [cohostLoading, setCohostLoading] = useState(false);
   const [cohostError, setCohostError] = useState('');
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setLightboxOpen(false);
+      if (e.key === 'ArrowRight') setImgIdx(i => (i + 1) % images.length);
+      if (e.key === 'ArrowLeft') setImgIdx(i => (i - 1 + images.length) % images.length);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxOpen, images?.length]);
 
   useEffect(() => {
     axios.get('/api/houses/' + id)
@@ -166,7 +178,11 @@ export default function HouseDetail() {
             <div className="relative rounded-2xl overflow-hidden bg-white/5 aspect-video">
               {images.length > 0 ? (
                 <>
-                  <img src={images[imgIdx]} alt={house.title} className="w-full h-full object-cover" />
+                  <img
+                    src={images[imgIdx]} alt={house.title}
+                    className="w-full h-full object-cover cursor-zoom-in"
+                    onClick={() => setLightboxOpen(true)}
+                  />
                   {images.length > 1 && (
                     <>
                       <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-black/60 rounded-full">
@@ -182,6 +198,15 @@ export default function HouseDetail() {
                       </div>
                     </>
                   )}
+                  <button
+                    onClick={() => setLightboxOpen(true)}
+                    className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-black/70 backdrop-blur-sm border border-white/20 rounded-full text-white text-xs font-bold hover:bg-black/90 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                    </svg>
+                    {images.length} photo{images.length > 1 ? 's' : ''}
+                  </button>
                 </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -189,6 +214,51 @@ export default function HouseDetail() {
                 </div>
               )}
             </div>
+
+            {/* Lightbox */}
+            {lightboxOpen && (
+              <div className="fixed inset-0 z-[900] bg-black/95 flex flex-col" onClick={() => setLightboxOpen(false)}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <span className="text-white/60 text-sm font-bold">{imgIdx + 1} / {images.length}</span>
+                  <button onClick={() => setLightboxOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Image principale */}
+                <div className="flex-1 flex items-center justify-center relative px-12 min-h-0" onClick={e => e.stopPropagation()}>
+                  <img src={images[imgIdx]} alt="" className="max-h-full max-w-full object-contain rounded-lg" />
+                  {images.length > 1 && (
+                    <>
+                      <button onClick={() => setImgIdx(i => (i - 1 + images.length) % images.length)} className="absolute left-2 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                        <ChevronLeftIcon className="h-6 w-6 text-white" />
+                      </button>
+                      <button onClick={() => setImgIdx(i => (i + 1) % images.length)} className="absolute right-2 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                        <ChevronRightIcon className="h-6 w-6 text-white" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Miniatures */}
+                {images.length > 1 && (
+                  <div className="flex gap-2 px-4 py-3 overflow-x-auto flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    {images.map((src, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setImgIdx(i)}
+                        className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${i === imgIdx ? 'border-gnYellow' : 'border-transparent opacity-50 hover:opacity-80'}`}
+                      >
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-[#111] border border-white/5 rounded-2xl p-6">
               <div className="flex items-start justify-between gap-4 mb-4">
