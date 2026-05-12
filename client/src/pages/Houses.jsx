@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   MagnifyingGlassIcon, HomeModernIcon,
   AdjustmentsHorizontalIcon, ChevronDownIcon, MapPinIcon,
-  MapIcon, ListBulletIcon, XMarkIcon,
+  MapIcon, ListBulletIcon, XMarkIcon, BellIcon,
 } from '@heroicons/react/24/outline';
 import { HeartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutline } from '@heroicons/react/24/outline';
@@ -206,6 +206,11 @@ export default function Houses() {
   const [minSurfaceLand, setMinSurfaceLand] = useState('');
   const [availableNow, setAvailableNow] = useState(false);
 
+  const [showSaveAlert, setShowSaveAlert] = useState(false);
+  const [alertLabel, setAlertLabel] = useState('');
+  const [alertSaving, setAlertSaving] = useState(false);
+  const [alertSaved, setAlertSaved] = useState(false);
+
   const totalGuests = adults + children + babies;
 
   useEffect(() => {
@@ -298,6 +303,26 @@ export default function Houses() {
   };
 
   const activeFiltersCount = [minPrice, maxPrice, bedrooms > 0, beds > 0, petsAllowed, minSurface, minSurfaceLand, availableNow, ...selectedAmenities].filter(Boolean).length;
+
+  const saveAlert = async () => {
+    if (!alertLabel.trim()) return;
+    setAlertSaving(true);
+    try {
+      await axios.post('/api/saved-searches', {
+        label: alertLabel.trim(),
+        city: city || null,
+        neighborhood: neighborhood || null,
+        max_price: maxPrice ? parseInt(maxPrice) : null,
+        min_bedrooms: bedrooms || null,
+        min_surface: minSurface ? parseInt(minSurface) : null,
+        amenities: selectedAmenities,
+      });
+      setAlertSaved(true);
+      setAlertLabel('');
+      setTimeout(() => { setShowSaveAlert(false); setAlertSaved(false); }, 1800);
+    } catch { /* ignore */ }
+    finally { setAlertSaving(false); }
+  };
 
   const resetFilters = () => {
     setMinPrice(''); setMaxPrice('');
@@ -431,6 +456,51 @@ export default function Houses() {
                   <MagnifyingGlassIcon className="h-3.5 w-3.5" />
                   Rechercher
                 </button>
+
+                {/* Alerte email */}
+                {user && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveAlert(v => !v)}
+                      title="Sauvegarder cette recherche"
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                        showSaveAlert ? 'border-gnYellow/40 text-gnYellow bg-gnYellow/8' : 'border-white/10 text-gray-400 hover:border-white/25 hover:text-white'
+                      }`}
+                    >
+                      <BellIcon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Alerte</span>
+                    </button>
+                    {showSaveAlert && (
+                      <div className="absolute top-full right-0 mt-2 w-72 bg-luxuryDark border border-white/10 rounded-2xl p-4 shadow-2xl z-50">
+                        <p className="text-white text-xs font-bold mb-1">Sauvegarder cette recherche</p>
+                        <p className="text-gray-500 text-[11px] mb-3">Vous recevrez un email dès qu'une nouvelle annonce correspond à vos critères.</p>
+                        {alertSaved ? (
+                          <p className="text-gnGreen text-xs font-bold text-center py-1">Alerte créée !</p>
+                        ) : (
+                          <>
+                            <input
+                              type="text"
+                              placeholder='Ex: "Maison Conakry 2 chambres"'
+                              value={alertLabel}
+                              onChange={e => setAlertLabel(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && saveAlert()}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gnYellow/50 mb-3"
+                            />
+                            <button
+                              type="button"
+                              onClick={saveAlert}
+                              disabled={alertSaving || !alertLabel.trim()}
+                              className="w-full bg-gnYellow text-black font-black text-xs uppercase tracking-widest py-2 rounded-xl hover:bg-gnYellow/90 transition-colors disabled:opacity-50"
+                            >
+                              {alertSaving ? 'Sauvegarde…' : 'Créer l\'alerte'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Desktop map toggle */}
                 <button

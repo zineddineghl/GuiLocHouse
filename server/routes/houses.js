@@ -18,6 +18,8 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+const { sendAlerts } = require('../utils/sendAlerts');
+
 const ORDER_BY_MAP = {
   recent:       'h.created_at DESC',
   price_asc:    'COALESCE(h.price_per_month, 0) ASC',
@@ -266,6 +268,9 @@ router.post('/', authenticate, upload.array('images', 10), async (req, res) => {
       `UPDATE houses SET latitude = $1, longitude = $2 WHERE id = $3`,
       [lat, lng, rows[0].id]
     );
+
+    // Alertes email — fire-and-forget
+    sendAlerts({ ...rows[0], owner_id: req.user.id });
 
     res.json(rows[0]);
   } catch (err) {

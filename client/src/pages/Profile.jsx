@@ -5,7 +5,7 @@ import { useAuth } from '../App';
 import Navbar from '../components/Navbar';
 import {
   PencilIcon, CheckIcon, XMarkIcon, PhoneIcon, CalendarIcon,
-  ShieldCheckIcon, EyeIcon, EyeSlashIcon, IdentificationIcon, DocumentArrowUpIcon,
+  ShieldCheckIcon, EyeIcon, EyeSlashIcon, IdentificationIcon, DocumentArrowUpIcon, BellIcon, TrashIcon,
 } from '@heroicons/react/24/outline';
 
 const AVATAR_COLORS = [
@@ -45,12 +45,21 @@ export default function Profile() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Alertes email
+  const [savedSearches, setSavedSearches] = useState([]);
+
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     setEditName(user.name || '');
     setEditPhone(user.phone || '');
     axios.get('/api/houses/my').then(r => setListings(r.data)).catch(() => {});
+    axios.get('/api/saved-searches').then(r => setSavedSearches(r.data)).catch(() => {});
   }, [user]);
+
+  const deleteAlert = async (id) => {
+    await axios.delete(`/api/saved-searches/${id}`).catch(() => {});
+    setSavedSearches(prev => prev.filter(s => s.id !== id));
+  };
 
   const handleSave = async () => {
     if (!editName.trim()) return;
@@ -307,6 +316,39 @@ export default function Profile() {
             >
               {pwdLoading ? 'Chargement...' : 'Modifier le mot de passe'}
             </button>
+          </div>
+
+          {/* Alertes email */}
+          <div className="mt-8 pt-6 border-t border-white/5">
+            <div className="flex items-center gap-2 mb-4">
+              <BellIcon className="h-4 w-4 text-gnYellow" />
+              <p className="font-bold text-white text-sm">Mes alertes de recherche</p>
+              {savedSearches.length > 0 && (
+                <span className="text-[10px] font-black bg-gnYellow/15 text-gnYellow px-2 py-0.5 rounded-full">{savedSearches.length}</span>
+              )}
+            </div>
+            {savedSearches.length === 0 ? (
+              <p className="text-xs text-gray-500">Aucune alerte. Depuis la page <a href="/houses" className="text-gnYellow hover:underline">Annonces</a>, cliquez sur "Alerte" pour être notifié par email.</p>
+            ) : (
+              <div className="space-y-2">
+                {savedSearches.map(s => (
+                  <div key={s.id} className="flex items-center justify-between gap-3 bg-black/30 border border-white/5 rounded-xl px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-bold truncate">{s.label}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        {[s.city, s.max_price ? `max ${Number(s.max_price).toLocaleString()} GNF` : null, s.min_bedrooms ? `${s.min_bedrooms}+ ch.` : null].filter(Boolean).join(' · ') || 'Tous types'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => deleteAlert(s.id)}
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gnRed/10 border border-gnRed/20 hover:bg-gnRed/20 transition-colors"
+                    >
+                      <TrashIcon className="h-3.5 w-3.5 text-gnRed" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Delete account */}

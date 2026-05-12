@@ -43,7 +43,24 @@ async function migrate() {
       )
     `);
 
-    console.log('Migration long-term OK');
+    // Alertes email — recherches sauvegardées
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS saved_searches (
+      id            SERIAL PRIMARY KEY,
+      user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      label         VARCHAR(255),
+      city          VARCHAR(255),
+      neighborhood  VARCHAR(255),
+      rental_type   VARCHAR(50),
+      max_price     INTEGER,
+      min_bedrooms  INTEGER,
+      min_surface   INTEGER,
+      amenities     JSONB DEFAULT '[]',
+      created_at    TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  console.log('Migration long-term OK');
   } catch (err) {
     console.error('Migration error:', err);
   } finally {

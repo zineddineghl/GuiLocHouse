@@ -19,6 +19,7 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/favorites', require('./routes/favorites'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/saved-searches', require('./routes/savedSearches'));
 
 // Serve client build in production
 if (process.env.NODE_ENV === 'production') {
