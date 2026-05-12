@@ -53,6 +53,8 @@ export default function HouseDetail() {
   const [cohostLoading, setCohostLoading] = useState(false);
   const [cohostError, setCohostError] = useState('');
 
+  const images = house ? (Array.isArray(house.images) ? house.images : JSON.parse(house.images || '[]')) : [];
+
   useEffect(() => {
     if (!lightboxOpen) return;
     const onKey = (e) => {
@@ -118,7 +120,6 @@ export default function HouseDetail() {
   );
   if (!house) return null;
 
-  const images = Array.isArray(house.images) ? house.images : JSON.parse(house.images || '[]');
   const isOwner = user?.id === house.owner_id;
   const isCohost = cohosts.some(c => c.id === user?.id);
 
