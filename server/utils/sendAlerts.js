@@ -1,7 +1,6 @@
 const { Resend } = require('resend');
 const pool = require('../db');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL || 'GuiLocHouse <alertes@guilochouse.com>';
 
 function matchesSearch(search, house) {
@@ -17,6 +16,8 @@ function matchesSearch(search, house) {
 }
 
 async function sendAlerts(house) {
+  if (!process.env.RESEND_API_KEY) return; // pas de clé, on skip silencieusement
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const { rows: searches } = await pool.query(`
       SELECT ss.*, u.email, u.name
